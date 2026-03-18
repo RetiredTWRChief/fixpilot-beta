@@ -19,6 +19,32 @@ app.get("/health", (req, res) => {
   res.json({ ok: true, message: "FixPilot backend running" });
 });
 
+function makeStoreResults(searchTerm) {
+  return [
+    {
+      name: "AutoZone",
+      distance: "2.4 mi",
+      type: "Nearby store",
+      mapUrl: `https://www.google.com/maps/search/${encodeURIComponent("AutoZone near me")}`,
+      productUrl: `https://www.autozone.com/searchresult?searchText=${encodeURIComponent(searchTerm)}`
+    },
+    {
+      name: "Advance Auto Parts",
+      distance: "3.1 mi",
+      type: "Nearby store",
+      mapUrl: `https://www.google.com/maps/search/${encodeURIComponent("Advance Auto Parts near me")}`,
+      productUrl: `https://shop.advanceautoparts.com/search?searchTerm=${encodeURIComponent(searchTerm)}`
+    },
+    {
+      name: "O'Reilly Auto Parts",
+      distance: "4.0 mi",
+      type: "Nearby store",
+      mapUrl: `https://www.google.com/maps/search/${encodeURIComponent("O'Reilly Auto Parts near me")}`,
+      productUrl: `https://www.oreillyauto.com/search?q=${encodeURIComponent(searchTerm)}`
+    }
+  ];
+}
+
 app.post("/diagnose", (req, res) => {
   const { problem } = req.body ?? {};
 
@@ -48,7 +74,8 @@ app.post("/diagnose", (req, res) => {
     tools: ["Flashlight", "Basic hand tools"],
     difficulty: "Moderate",
     getHelpIf: "Stop and get professional help if you see major leaks, smoke, severe noises, or warning lights that indicate immediate risk.",
-    safety: "Use caution and verify the vehicle is cool and secure before working on it."
+    safety: "Use caution and verify the vehicle is cool and secure before working on it.",
+    stores: makeStoreResults("vehicle diagnostic tools")
   };
 
   if (lower.includes("won't start") || lower.includes("wont start") || lower.includes("no start")) {
@@ -75,7 +102,8 @@ app.post("/diagnose", (req, res) => {
       tools: ["Battery tester", "Wrench set", "Flashlight"],
       difficulty: "Moderate",
       getHelpIf: "Get professional help if the vehicle repeatedly fails to start after confirmed battery support, or if starter wiring appears damaged.",
-      safety: "Keep the vehicle in park and away from moving parts while testing."
+      safety: "Keep the vehicle in park and away from moving parts while testing.",
+      stores: makeStoreResults("car battery starter relay battery terminals")
     };
   } else if (lower.includes("brake")) {
     result = {
@@ -101,7 +129,8 @@ app.post("/diagnose", (req, res) => {
       tools: ["Flashlight", "Jack and stands", "Lug wrench"],
       difficulty: "Moderate",
       getHelpIf: "Get professional help immediately if the brake pedal feels unsafe, sinks, or braking is severely reduced.",
-      safety: "Never work under a vehicle unless it is properly supported."
+      safety: "Never work under a vehicle unless it is properly supported.",
+      stores: makeStoreResults("brake pads brake rotors brake fluid")
     };
   } else if (lower.includes("overheat") || lower.includes("hot") || lower.includes("coolant")) {
     result = {
@@ -127,7 +156,8 @@ app.post("/diagnose", (req, res) => {
       tools: ["Flashlight", "Coolant funnel", "Pliers"],
       difficulty: "Moderate",
       getHelpIf: "Stop driving and get help if temperature continues rising rapidly or coolant is pouring out.",
-      safety: "A hot cooling system can cause serious burns."
+      safety: "A hot cooling system can cause serious burns.",
+      stores: makeStoreResults("coolant radiator hose thermostat")
     };
   } else if (lower.includes("battery") || lower.includes("charge") || lower.includes("charging")) {
     result = {
@@ -153,7 +183,8 @@ app.post("/diagnose", (req, res) => {
       tools: ["Battery tester", "Multimeter", "Wrench set"],
       difficulty: "Moderate",
       getHelpIf: "Get professional help if charging voltage is unstable, wiring is damaged, or repeated dead-battery events continue after battery replacement.",
-      safety: "Keep metal tools away from both battery terminals at the same time."
+      safety: "Keep metal tools away from both battery terminals at the same time.",
+      stores: makeStoreResults("car battery alternator battery terminal cleaner")
     };
   } else if (lower.includes("air suspension") || lower.includes("suspension")) {
     result = {
@@ -179,7 +210,8 @@ app.post("/diagnose", (req, res) => {
       tools: ["Flashlight", "Soapy water spray", "Basic hand tools"],
       difficulty: "Advanced",
       getHelpIf: "Get professional help if the vehicle sags severely, compressor runs constantly, or warning messages persist after restart.",
-      safety: "Do not place yourself under a vehicle with unstable ride height unless it is properly supported."
+      safety: "Do not place yourself under a vehicle with unstable ride height unless it is properly supported.",
+      stores: makeStoreResults("air suspension compressor ride height sensor air line fitting")
     };
   }
 
