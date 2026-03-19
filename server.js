@@ -1,5 +1,5 @@
-const express = require("express");
-const cors = require("cors");
+import express from "express";
+import cors from "cors";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -60,7 +60,6 @@ function getDetailedDiagnosis(symptoms, vehicle) {
 
   const vehicleLine = [year, make, model, engine].filter(Boolean).join(" ").trim();
 
-  // Battery / alternator / no start
   if (
     includesAny(text, [
       "won't start",
@@ -148,7 +147,6 @@ function getDetailedDiagnosis(symptoms, vehicle) {
     });
   }
 
-  // Overheating / coolant
   if (
     includesAny(text, [
       "overheat",
@@ -228,7 +226,6 @@ function getDetailedDiagnosis(symptoms, vehicle) {
     });
   }
 
-  // Brake issues
   if (
     includesAny(text, [
       "brake",
@@ -303,7 +300,6 @@ function getDetailedDiagnosis(symptoms, vehicle) {
     });
   }
 
-  // Engine misfire / rough idle / check engine
   if (
     includesAny(text, [
       "misfire",
@@ -378,7 +374,6 @@ function getDetailedDiagnosis(symptoms, vehicle) {
     });
   }
 
-  // Suspension / steering noise
   if (
     includesAny(text, [
       "clunk",
@@ -448,7 +443,6 @@ function getDetailedDiagnosis(symptoms, vehicle) {
     });
   }
 
-  // Fallback
   return buildResponse({
     title: "Possible Issue: More Information Needed",
     confidence: "Low to Medium",
