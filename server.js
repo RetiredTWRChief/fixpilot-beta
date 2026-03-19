@@ -81,6 +81,142 @@ app.post("/diagnose", async (req, res) => {
   const { problem, year, make, model, vin } = req.body ?? {};
 
   if (!problem || typeof problem !== "string") {
+    return res.status(400).json({ error: "Please describe the problem." });
+  }
+
+  const lower = problem.toLowerCase();
+
+  let decoded = null;
+  if (vin && vin.length >= 10) {
+    decoded = await decodeVIN(vin);
+  }
+
+  const vehicleLabel = decoded
+    ? `${decoded.ModelYear} ${decoded.Make} ${decoded.Model}`
+    : [year, make, model].filter(Boolean).join(" ") || "your vehicle";
+
+  let result = {
+    vehicle: vehicleLabel,
+    title: "Let’s take a look together",
+    mechanicIntro: `Alright — let’s walk through this step by step on your ${vehicleLabel}. I’ll keep it simple and we’ll check the easy things first.`,
+    likelyIssue: "We need to narrow it down by checking a few things.",
+    steps: [],
+    tools: [],
+    safety: "Always make sure the vehicle is off, in park, and cooled down before touching anything.",
+    stores: makeStoreResults(`${vehicleLabel} tools`),
+    videos: makeVideoResults(`${vehicleLabel} repair`)
+  };
+
+  // 🔋 NO START
+  if (lower.includes("won't start") || lower.includes("no start")) {
+    result = {
+      ...result,
+      title: "Let’s figure out why it won’t start",
+      mechanicIntro: `Okay — if your ${vehicleLabel} won’t start, don’t worry. We’re going to check this together one step at a time.`,
+      likelyIssue: "Most of the time this is battery, connections, or the starter.",
+      steps: [
+        {
+          title: "Step 1: Look at the battery",
+          instruction: "Open the hood and find the battery.",
+          whatToLookFor: "Check if the battery terminals look dirty, white, or crusty.",
+          whatItMeans: "If they are dirty or loose, that alone can stop the vehicle from starting."
+        },
+        {
+          title: "Step 2: Try to start the vehicle",
+          instruction: "Turn the key or press the start button.",
+          whatToLookFor: "Do you hear a clicking sound or nothing at all?",
+          whatItMeans: "Clicking usually means weak battery. No sound could mean a bigger issue."
+        },
+        {
+          title: "Step 3: Check battery strength",
+          instruction: "Use a battery tester or try a jump start.",
+          whatToLookFor: "If it starts with a jump, the battery is likely the problem.",
+          whatItMeans: "That means your battery may need to be replaced."
+        }
+      ],
+      tools: [
+        { name: "Flashlight", desc: "Helps you clearly see the battery and connections." },
+        { name: "Wrench or socket set", desc: "Used to tighten or remove battery terminals." },
+        { name: "Battery tester", desc: "Checks if the battery is still good." }
+      ]
+    };
+  }
+
+  // 🛑 BRAKES
+  else if (lower.includes("brake")) {
+    result = {
+      ...result,
+      title: "Let’s check your brakes",
+      mechanicIntro: `Alright — brake problems are important, so let’s go step by step and keep this safe.`,
+      likelyIssue: "Most likely worn brake pads or low fluid.",
+      steps: [
+        {
+          title: "Step 1: Listen while driving slowly",
+          instruction: "Drive slowly and gently press the brakes.",
+          whatToLookFor: "Do you hear squealing or grinding?",
+          whatItMeans: "Squealing = worn pads. Grinding = pads may be gone completely."
+        },
+        {
+          title: "Step 2: Check brake fluid",
+          instruction: "Open the hood and find the brake fluid reservoir.",
+          whatToLookFor: "Look at the level on the side of the container.",
+          whatItMeans: "Low fluid can mean worn brakes or a leak."
+        },
+        {
+          title: "Step 3: Look at the wheels",
+          instruction: "Look through the wheel if possible.",
+          whatToLookFor: "Try to see if the brake pad looks thin.",
+          whatItMeans: "Thin pads need replacement soon."
+        }
+      ],
+      tools: [
+        { name: "Flashlight", desc: "Helps you see brake components." },
+        { name: "Jack and stands", desc: "Needed if removing wheels safely." },
+        { name: "Lug wrench", desc: "Used to remove wheels." }
+      ]
+    };
+  }
+
+  // 🌡️ OVERHEATING
+  else if (lower.includes("overheat") || lower.includes("coolant")) {
+    result = {
+      ...result,
+      title: "Let’s check why it’s overheating",
+      mechanicIntro: `Okay — overheating is serious, so we’ll take this slow and safe.`,
+      likelyIssue: "Usually coolant level or a leak.",
+      steps: [
+        {
+          title: "Step 1: Let it cool down",
+          instruction: "Turn off the vehicle and wait.",
+          whatToLookFor: "Do NOT open anything while hot.",
+          whatItMeans: "Opening it hot can cause burns."
+        },
+        {
+          title: "Step 2: Check coolant level",
+          instruction: "Once cool, check the coolant tank.",
+          whatToLookFor: "Is it low or empty?",
+          whatItMeans: "Low coolant usually means a leak somewhere."
+        },
+        {
+          title: "Step 3: Look for leaks",
+          instruction: "Look under the vehicle and around hoses.",
+          whatToLookFor: "Wet spots or colored fluid.",
+          whatItMeans: "That shows where coolant is escaping."
+        }
+      ],
+      tools: [
+        { name: "Flashlight", desc: "Helps find leaks." },
+        { name: "Gloves", desc: "Protects your hands." },
+        { name: "Coolant funnel", desc: "Helps refill coolant safely." }
+      ]
+    };
+  }
+
+  return res.json(result);
+});
+  const { problem, year, make, model, vin } = req.body ?? {};
+
+  if (!problem || typeof problem !== "string") {
     return res.status(400).json({ error: "Problem description is required." });
   }
 
