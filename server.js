@@ -15,9 +15,21 @@ app.use(cors({
 }));
 app.use(express.json());
 
-app.get("/health", (req, res) => {
+app.get("/health", (_req, res) => {
   res.json({ ok: true, message: "FixPilot backend running" });
 });
+
+async function decodeVIN(vin) {
+  try {
+    const response = await fetch(
+      `https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvalues/${encodeURIComponent(vin)}?format=json`
+    );
+    const data = await response.json();
+    return data?.Results?.[0] || null;
+  } catch (error) {
+    return null;
+  }
+}
 
 function makeStoreResults(searchTerm) {
   return [
@@ -65,8 +77,8 @@ function makeVideoResults(searchTerm) {
   ];
 }
 
-app.post("/diagnose", (req, res) => {
-  const { problem } = req.body ?? {};
+app.post("/diagnose", async (req, res) => {
+  const { problem, year, make, model, vin } = req.body ?? {};
 
   if (!problem || typeof problem !== "string") {
     return res.status(400).json({ error: "Problem description is required." });
@@ -74,9 +86,35 @@ app.post("/diagnose", (req, res) => {
 
   const lower = problem.toLowerCase();
 
+  let decoded = null;
+  if (vin && typeof vin === "string" && vin.trim().length >= 10) {
+    decoded = await decodeVIN(vin.trim());
+  }
+
+  const decodedYear = decoded?.ModelYear || "";
+  const decodedMake = decoded?.Make || "";
+  const decodedModel = decoded?.Model || "";
+  const decodedEngine = decoded?.EngineModel || decoded?.DisplacementL || "";
+
+  const vehicleLabel = decoded && (decodedMake || decodedModel || decodedYear)
+    ? `${decodedYear} ${decodedMake} ${decodedModel}${decodedEngine ? ` (${decodedEngine})` : ""}`.trim()
+    : [year, make, model].filter(Boolean).join(" ").trim() || "Your vehicle";
+
   let result = {
+    vehicle: vehicleLabel,
+    vin: vin || "",
+    decodedVIN: decoded
+      ? {
+          year: decodedYear,
+          make: decodedMake,
+          model: decodedModel,
+          engine: decodedEngine,
+          trim: decoded?.Trim || "",
+          bodyClass: decoded?.BodyClass || ""
+        }
+      : null,
     title: "Initial FixPilot Guidance",
-    likelyIssue: "The issue needs a closer inspection.",
+    likelyIssue: `The issue on ${vehicleLabel} needs a closer inspection.`,
     likelyCauses: [
       "A loose, worn, or damaged component",
       "A maintenance-related issue",
@@ -95,14 +133,15 @@ app.post("/diagnose", (req, res) => {
     difficulty: "Moderate",
     getHelpIf: "Stop and get professional help if you see major leaks, smoke, severe noises, or warning lights that indicate immediate risk.",
     safety: "Use caution and verify the vehicle is cool and secure before working on it.",
-    stores: makeStoreResults("vehicle diagnostic tools"),
-    videos: makeVideoResults("vehicle diagnostic basics")
+    stores: makeStoreResults(`${vehicleLabel} vehicle diagnostic tools`),
+    videos: makeVideoResults(`${vehicleLabel} vehicle diagnostic basics`)
   };
 
   if (lower.includes("won't start") || lower.includes("wont start") || lower.includes("no start")) {
     result = {
+      ...result,
       title: "No-Start Check",
-      likelyIssue: "Possible weak battery, starter issue, or fuel/ignition problem.",
+      likelyIssue: `Possible weak battery, starter issue, or fuel/ignition problem on ${vehicleLabel}.`,
       likelyCauses: [
         "Weak or discharged battery",
         "Loose or corroded battery terminals",
@@ -124,13 +163,14 @@ app.post("/diagnose", (req, res) => {
       difficulty: "Moderate",
       getHelpIf: "Get professional help if the vehicle repeatedly fails to start after confirmed battery support, or if starter wiring appears damaged.",
       safety: "Keep the vehicle in park and away from moving parts while testing.",
-      stores: makeStoreResults("car battery starter relay battery terminals"),
-      videos: makeVideoResults("car wont start battery starter diagnosis")
+      stores: makeStoreResults(`${vehicleLabel} battery starter relay battery terminals`),
+      videos: makeVideoResults(`${vehicleLabel} wont start battery starter diagnosis`)
     };
   } else if (lower.includes("brake")) {
     result = {
+      ...result,
       title: "Brake Issue Check",
-      likelyIssue: "Possible worn pads, rotor wear, or low brake fluid.",
+      likelyIssue: `Possible worn pads, rotor wear, or low brake fluid on ${vehicleLabel}.`,
       likelyCauses: [
         "Worn brake pads",
         "Scored or warped rotors",
@@ -152,13 +192,14 @@ app.post("/diagnose", (req, res) => {
       difficulty: "Moderate",
       getHelpIf: "Get professional help immediately if the brake pedal feels unsafe, sinks, or braking is severely reduced.",
       safety: "Never work under a vehicle unless it is properly supported.",
-      stores: makeStoreResults("brake pads brake rotors brake fluid"),
-      videos: makeVideoResults("brake pad rotor replacement")
+      stores: makeStoreResults(`${vehicleLabel} brake pads brake rotors brake fluid`),
+      videos: makeVideoResults(`${vehicleLabel} brake pad rotor replacement`)
     };
   } else if (lower.includes("overheat") || lower.includes("hot") || lower.includes("coolant")) {
     result = {
+      ...result,
       title: "Cooling System Check",
-      likelyIssue: "Possible coolant leak, bad hose, thermostat issue, or fan problem.",
+      likelyIssue: `Possible coolant leak, bad hose, thermostat issue, or fan problem on ${vehicleLabel}.`,
       likelyCauses: [
         "Coolant leak from hose or radiator",
         "Stuck thermostat",
@@ -180,13 +221,14 @@ app.post("/diagnose", (req, res) => {
       difficulty: "Moderate",
       getHelpIf: "Stop driving and get help if temperature continues rising rapidly or coolant is pouring out.",
       safety: "A hot cooling system can cause serious burns.",
-      stores: makeStoreResults("coolant radiator hose thermostat"),
-      videos: makeVideoResults("engine overheating coolant hose thermostat diagnosis")
+      stores: makeStoreResults(`${vehicleLabel} coolant radiator hose thermostat`),
+      videos: makeVideoResults(`${vehicleLabel} overheating coolant hose thermostat diagnosis`)
     };
   } else if (lower.includes("battery") || lower.includes("charge") || lower.includes("charging")) {
     result = {
+      ...result,
       title: "Battery / Charging System Check",
-      likelyIssue: "Possible weak battery, charging system issue, parasitic draw, or poor cable connection.",
+      likelyIssue: `Possible weak battery, charging system issue, parasitic draw, or poor cable connection on ${vehicleLabel}.`,
       likelyCauses: [
         "Battery no longer holding charge",
         "Alternator not charging properly",
@@ -208,13 +250,14 @@ app.post("/diagnose", (req, res) => {
       difficulty: "Moderate",
       getHelpIf: "Get professional help if charging voltage is unstable, wiring is damaged, or repeated dead-battery events continue after battery replacement.",
       safety: "Keep metal tools away from both battery terminals at the same time.",
-      stores: makeStoreResults("car battery alternator battery terminal cleaner"),
-      videos: makeVideoResults("battery alternator charging system diagnosis")
+      stores: makeStoreResults(`${vehicleLabel} battery alternator battery terminal cleaner`),
+      videos: makeVideoResults(`${vehicleLabel} battery alternator charging system diagnosis`)
     };
   } else if (lower.includes("air suspension") || lower.includes("suspension")) {
     result = {
+      ...result,
       title: "Air Suspension Warning Check",
-      likelyIssue: "Possible air leak, ride-height sensor issue, compressor issue, or control fault.",
+      likelyIssue: `Possible air leak, ride-height sensor issue, compressor issue, or control fault on ${vehicleLabel}.`,
       likelyCauses: [
         "Air spring or line leak",
         "Ride-height sensor fault",
@@ -236,8 +279,8 @@ app.post("/diagnose", (req, res) => {
       difficulty: "Advanced",
       getHelpIf: "Get professional help if the vehicle sags severely, compressor runs constantly, or warning messages persist after restart.",
       safety: "Do not place yourself under a vehicle with unstable ride height unless it is properly supported.",
-      stores: makeStoreResults("air suspension compressor ride height sensor air line fitting"),
-      videos: makeVideoResults("air suspension compressor ride height sensor diagnosis")
+      stores: makeStoreResults(`${vehicleLabel} air suspension compressor ride height sensor air line fitting`),
+      videos: makeVideoResults(`${vehicleLabel} air suspension compressor ride height sensor diagnosis`)
     };
   }
 
