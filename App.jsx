@@ -74,6 +74,15 @@ export default function App() {
           color: #1f2937;
         }
 
+        a {
+          color: #1d4ed8;
+          text-decoration: none;
+        }
+
+        a:hover {
+          text-decoration: underline;
+        }
+
         .app-shell {
           min-height: 100vh;
           background:
@@ -84,7 +93,7 @@ export default function App() {
         }
 
         .container {
-          max-width: 1150px;
+          max-width: 1250px;
           margin: 0 auto;
         }
 
@@ -108,7 +117,7 @@ export default function App() {
           color: #d1d5db;
           font-size: 1rem;
           line-height: 1.6;
-          max-width: 800px;
+          max-width: 900px;
         }
 
         .layout {
@@ -254,6 +263,23 @@ export default function App() {
           line-height: 1.7;
         }
 
+        .mechanic-intro {
+          font-size: 1.05rem;
+          font-weight: 600;
+          color: #1e3a8a;
+          margin-bottom: 14px;
+        }
+
+        .mechanic-closing {
+          background: #eff6ff;
+          border: 1px solid #bfdbfe;
+          border-radius: 16px;
+          padding: 14px;
+          color: #1e3a8a;
+          font-weight: 600;
+          line-height: 1.6;
+        }
+
         .badge-row {
           display: flex;
           flex-wrap: wrap;
@@ -368,8 +394,52 @@ export default function App() {
           font-size: 0.95rem;
         }
 
-        .notes {
-          margin-top: 6px;
+        .resource-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 12px;
+        }
+
+        @media (min-width: 900px) {
+          .resource-grid {
+            grid-template-columns: 1fr 1fr;
+          }
+        }
+
+        .resource-item {
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 16px;
+          padding: 14px;
+        }
+
+        .resource-item strong {
+          display: block;
+          margin-bottom: 8px;
+        }
+
+        .link-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          margin-top: 8px;
+        }
+
+        .chip-link {
+          display: inline-block;
+          padding: 8px 12px;
+          border-radius: 999px;
+          background: #e0ecff;
+          color: #1d4ed8;
+          font-size: 0.88rem;
+          font-weight: 700;
+        }
+
+        .question-box {
+          background: #f8fafc;
+          border: 1px solid #cbd5e1;
+          border-radius: 18px;
+          padding: 18px;
         }
 
         .notes li {
@@ -388,10 +458,10 @@ export default function App() {
         <div className="hero">
           <h1>Mechanic-Style Vehicle Diagnosis Assistant</h1>
           <p>
-            Tell me what your vehicle is doing, and I’ll walk you through the
-            most likely issue, what to check first, what tools you may need,
-            beginner-friendly steps, and when it’s safer to stop and call a
-            professional.
+            Describe what your vehicle is doing, and I’ll help you think through
+            the most likely issue, what to check first, the tools you may need,
+            parts to look for, videos to watch, and when it is safer to stop and
+            call a professional.
           </p>
         </div>
 
@@ -399,8 +469,7 @@ export default function App() {
           <div className="panel">
             <h2>Enter Vehicle Details</h2>
             <p className="subtext">
-              Add as much detail as you can. The better the description, the
-              better the diagnosis.
+              The more detail you give, the better the diagnosis will be.
             </p>
 
             <form onSubmit={handleSubmit}>
@@ -493,16 +562,21 @@ export default function App() {
               <div className="placeholder">
                 <h2>No diagnosis yet</h2>
                 <p>
-                  Enter the vehicle details and symptoms on the left, then click
-                  <strong> Get Diagnosis </strong> to see a mechanic-style
+                  Enter the vehicle details and symptoms, then click{" "}
+                  <strong>Get Diagnosis</strong> to see a mechanic-style
                   breakdown.
                 </p>
               </div>
             ) : (
               <div className="result-card">
                 <div className="top-summary">
+                  {result.mechanicIntro && (
+                    <div className="mechanic-intro">{result.mechanicIntro}</div>
+                  )}
+
                   <h2>{result.title}</h2>
                   <p>{result.summary}</p>
+
                   <div className="badge-row">
                     <span className="badge confidence">
                       Confidence: {result.confidence}
@@ -556,25 +630,82 @@ export default function App() {
                   </ol>
                 </div>
 
-                <div className="section-grid">
-                  <div className="info-card">
-                    <h3>Possible Parts You May Need</h3>
-                    <ul className="list">
-                      {result.parts?.map((part, index) => (
-                        <li key={index}>{part}</li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div className="info-card">
-                    <h3>Helpful Video Search Ideas</h3>
-                    <ul className="list">
-                      {result.videos?.map((video, index) => (
-                        <li key={index}>{video}</li>
-                      ))}
-                    </ul>
+                <div className="info-card">
+                  <h3>Parts Lookup Links</h3>
+                  <div className="resource-grid">
+                    {result.partLinks?.map((part, index) => (
+                      <div className="resource-item" key={index}>
+                        <strong>{part.name}</strong>
+                        <div className="link-row">
+                          <a
+                            className="chip-link"
+                            href={part.google}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Google
+                          </a>
+                          <a
+                            className="chip-link"
+                            href={part.amazon}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Amazon
+                          </a>
+                          <a
+                            className="chip-link"
+                            href={part.autozone}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            AutoZone
+                          </a>
+                          <a
+                            className="chip-link"
+                            href={part.rockauto}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            RockAuto
+                          </a>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
+
+                <div className="info-card">
+                  <h3>Helpful Videos</h3>
+                  <div className="resource-grid">
+                    {result.videoLinks?.map((video, index) => (
+                      <div className="resource-item" key={index}>
+                        <strong>{video.title}</strong>
+                        <div className="link-row">
+                          <a
+                            className="chip-link"
+                            href={video.youtube}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Watch on YouTube
+                          </a>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {result.followUpQuestions?.length > 0 && (
+                  <div className="info-card question-box">
+                    <h3>Questions I’d Ask Next Like A Mechanic Would</h3>
+                    <ul className="list">
+                      {result.followUpQuestions.map((question, index) => (
+                        <li key={index}>{question}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 {result.extraNotes?.length > 0 && (
                   <div className="info-card">
@@ -586,14 +717,20 @@ export default function App() {
                     </ul>
                   </div>
                 )}
+
+                {result.mechanicClosing && (
+                  <div className="mechanic-closing">
+                    {result.mechanicClosing}
+                  </div>
+                )}
               </div>
             )}
           </div>
         </div>
 
         <div className="footer-note">
-          This tool gives a guided diagnosis, not a guaranteed repair answer.
-          Always inspect safely before replacing parts.
+          This tool gives guided repair advice, not a guaranteed repair answer.
+          Always inspect safely before buying parts or replacing components.
         </div>
       </div>
     </div>
