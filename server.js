@@ -48,6 +48,16 @@ function buildVideoLinks(videoTopics, vehicleLine = "") {
   });
 }
 
+function buildToolLinks(tools, vehicleLine = "") {
+  return tools.map((tool) => {
+    const queryBase = [vehicleLine, tool.name, tool.spec].filter(Boolean).join(" ");
+    return {
+      ...tool,
+      searchLink: makeGoogleSearchLink(queryBase),
+    };
+  });
+}
+
 function buildFollowUpQuestions(category) {
   const map = {
     battery: [
@@ -118,7 +128,7 @@ function buildResponse({
       summary,
       why,
       firstCheck,
-      tools,
+      tools: buildToolLinks(tools, vehicleLine),
       difficulty,
       safety,
       steps,
@@ -175,8 +185,8 @@ function getDetailedDiagnosis(symptoms, vehicle) {
       confidence: likelyAlternator ? "High" : "Medium-High",
       mechanicIntro: `Alright, let’s check this together${vehicleLabel}. Based on what you described, this sounds most like a battery or charging-system problem.`,
       summary: likelyAlternator
-        ? `The charging system is one of the strongest suspects here. That usually means the battery is not being charged correctly while the engine is running.`
-        : `The most likely issue is a weak battery, loose battery terminal, or corroded battery connection.`,
+        ? "The charging system is one of the strongest suspects here. That usually means the battery is not being charged correctly while the engine is running."
+        : "The most likely issue is a weak battery, loose battery terminal, or corroded battery connection.",
       why: likelyAlternator
         ? "When a vehicle starts after a jump but later dies again, or the battery light comes on, that often points toward the alternator, battery cables, or charging circuit."
         : "A clicking sound, slow cranking, or no crank at all usually happens when battery voltage is too low or the battery terminals are dirty or loose.",
@@ -184,24 +194,34 @@ function getDetailedDiagnosis(symptoms, vehicle) {
         "First, check both battery terminals. Make sure they are tight, clean, and free of white or green corrosion. After that, think about the age of the battery. If it is several years old, it may simply be worn out.",
       tools: [
         {
-          name: "10mm wrench or socket",
-          description: "This is commonly used to loosen and tighten battery terminal clamps.",
+          name: "Deep socket",
+          spec: "10mm, 1/4-inch or 3/8-inch drive",
+          use: "Used to loosen and tighten battery terminal clamp nuts and small hold-down fasteners.",
+          note: "A deep socket usually fits better over battery terminal nuts than a shallow socket.",
+        },
+        {
+          name: "Ratchet",
+          spec: "1/4-inch or 3/8-inch drive",
+          use: "Turns the socket so you can remove or tighten the battery connections.",
+          note: "A smaller ratchet usually works better in tight battery areas.",
+        },
+        {
+          name: "Extension bar",
+          spec: "3-inch to 6-inch, matching drive size",
+          use: "Helps reach recessed battery hold-down bolts or tight battery tray hardware.",
+          note: "Use only if the battery area is cramped.",
         },
         {
           name: "Battery terminal cleaning brush",
-          description: "Use this to clean corrosion off the terminals and cable ends.",
-        },
-        {
-          name: "Flashlight",
-          description: "Helps you clearly see corrosion, loose cables, cracks, or swelling.",
-        },
-        {
-          name: "Gloves",
-          description: "Good protection for your hands while handling dirty or corroded parts.",
+          spec: "Standard post and clamp cleaner",
+          use: "Cleans corrosion off the battery posts and cable ends.",
+          note: "This helps restore a good electrical connection.",
         },
         {
           name: "Multimeter",
-          description: "Best tool for checking battery voltage and alternator charging voltage.",
+          spec: "Digital, DC voltage setting",
+          use: "Checks battery voltage with the engine off and charging voltage with the engine running.",
+          note: "This is the best way to avoid guessing between a battery and alternator problem.",
         },
       ],
       difficulty: "Beginner to Intermediate",
@@ -218,13 +238,7 @@ function getDetailedDiagnosis(symptoms, vehicle) {
         "Start the engine and check charging voltage. Around 13.5 to 14.8 volts usually means the alternator is charging correctly.",
         "If the battery keeps dying or charging voltage stays low, the alternator, battery, or cables may need replacement.",
       ],
-      parts: [
-        "Battery",
-        "Battery terminal ends",
-        "Battery cables",
-        "Alternator",
-        "Serpentine belt",
-      ],
+      parts: ["Battery", "Battery terminal ends", "Battery cables", "Alternator", "Serpentine belt"],
       videos: [
         "how to clean battery terminals safely",
         "how to test a car battery with a multimeter",
@@ -269,23 +283,33 @@ function getDetailedDiagnosis(symptoms, vehicle) {
       tools: [
         {
           name: "Flashlight",
-          description: "Useful for checking hoses, clamps, the radiator area, and leak spots.",
-        },
-        {
-          name: "Gloves",
-          description: "Protects your hands from hot surfaces and coolant residue.",
+          spec: "LED handheld or magnetic work light",
+          use: "Helps inspect hoses, clamps, radiator seams, and wet leak areas.",
+          note: "A bright light makes small leaks easier to spot.",
         },
         {
           name: "Coolant funnel",
-          description: "Makes it easier to add coolant cleanly and safely.",
+          spec: "Spill-free funnel kit preferred",
+          use: "Used to add coolant more cleanly and safely.",
+          note: "A spill-free funnel also helps with some bleeding procedures.",
         },
         {
           name: "Pliers",
-          description: "Helpful for certain hose clamps if inspection is needed.",
+          spec: "Slip-joint or hose-clamp pliers",
+          use: "Useful for spring-style hose clamps during inspection.",
+          note: "Only needed if you are checking hoses closely.",
         },
         {
           name: "OBD2 scanner",
-          description: "Can help verify engine temperature and fan operation if supported.",
+          spec: "Basic scanner with live data if possible",
+          use: "Helps confirm engine temperature readings and may help verify cooling fan behavior.",
+          note: "Live data is helpful but not required.",
+        },
+        {
+          name: "Work gloves",
+          spec: "Heat-resistant mechanic gloves",
+          use: "Protects your hands while inspecting a recently run engine bay.",
+          note: "Still let the engine cool fully before opening the system.",
         },
       ],
       difficulty: "Beginner to Intermediate",
@@ -302,14 +326,7 @@ function getDetailedDiagnosis(symptoms, vehicle) {
         "If coolant is low, add the correct coolant and keep watching for a leak.",
         "If the engine still overheats, the thermostat, water pump, radiator, or a more serious engine problem may need professional inspection.",
       ],
-      parts: [
-        "Coolant",
-        "Thermostat",
-        "Radiator hose",
-        "Radiator cap",
-        "Cooling fan relay",
-        "Water pump",
-      ],
+      parts: ["Coolant", "Thermostat", "Radiator hose", "Radiator cap", "Cooling fan relay", "Water pump"],
       videos: [
         "how to check coolant level safely",
         "how to diagnose an overheating engine",
@@ -352,24 +369,34 @@ function getDetailedDiagnosis(symptoms, vehicle) {
         "Start by checking brake fluid level, and pay attention to when the noise happens: only while braking, or also while driving.",
       tools: [
         {
-          name: "Lug wrench",
-          description: "Used to remove the wheel if you inspect the brakes directly.",
+          name: "Lug wrench or socket",
+          spec: "Usually 19mm, 21mm, or 22mm depending on vehicle",
+          use: "Removes the lug nuts so the wheel can come off.",
+          note: "Check your vehicle’s lug size before starting.",
+        },
+        {
+          name: "Ratchet and socket set",
+          spec: "3/8-inch or 1/2-inch drive",
+          use: "Used to remove brake caliper bolts and bracket hardware.",
+          note: "Many vehicles use 13mm, 14mm, 17mm, or similar sizes here.",
         },
         {
           name: "Jack and jack stands",
-          description: "Needed to raise and support the vehicle safely.",
+          spec: "Vehicle-rated capacity",
+          use: "Safely lifts and supports the vehicle during brake inspection.",
+          note: "Never rely on a jack alone.",
         },
         {
-          name: "Flashlight",
-          description: "Helps you inspect pad thickness, leaks, and rotor condition.",
+          name: "Brake piston tool or C-clamp",
+          spec: "Standard front caliper compression tool",
+          use: "Compresses the caliper piston when replacing pads.",
+          note: "Some rear brakes require a special wind-back tool instead.",
         },
         {
           name: "Brake cleaner",
-          description: "Useful for cleaning brake dust during inspection.",
-        },
-        {
-          name: "C-clamp or brake piston tool",
-          description: "Used if you are compressing the caliper piston during brake work.",
+          spec: "Automotive aerosol brake cleaner",
+          use: "Cleans brake dust and grime from parts during inspection.",
+          note: "Use in a ventilated area.",
         },
       ],
       difficulty: "Intermediate",
@@ -384,13 +411,7 @@ function getDetailedDiagnosis(symptoms, vehicle) {
         "Replace brake parts in pairs on the same axle whenever needed.",
         "If the pedal feels soft, inspect for leaks and consider brake bleeding if appropriate.",
       ],
-      parts: [
-        "Brake pads",
-        "Brake rotors",
-        "Brake fluid",
-        "Caliper slide pins",
-        "Brake hardware kit",
-      ],
+      parts: ["Brake pads", "Brake rotors", "Brake fluid", "Caliper slide pins", "Brake hardware kit"],
       videos: [
         "how to inspect brake pads and rotors",
         "difference between squeaking and grinding brakes",
@@ -433,23 +454,33 @@ function getDetailedDiagnosis(symptoms, vehicle) {
       tools: [
         {
           name: "OBD2 scanner",
-          description: "This is the best first tool if the check engine light is on.",
+          spec: "Basic scanner, preferably with live data",
+          use: "Reads trouble codes and helps identify which cylinder or system is acting up.",
+          note: "This is your best first tool before buying parts.",
         },
         {
           name: "Spark plug socket",
-          description: "Used to remove and inspect spark plugs.",
+          spec: "Usually 5/8-inch or 9/16-inch",
+          use: "Removes spark plugs for inspection or replacement.",
+          note: "Use the size that matches your engine’s spark plugs.",
         },
         {
-          name: "Ratchet and extension",
-          description: "Helps you reach ignition coils and plugs.",
+          name: "Ratchet",
+          spec: "3/8-inch drive",
+          use: "Turns the spark plug socket and extension during plug removal.",
+          note: "A 3/8-inch drive is common for this job.",
+        },
+        {
+          name: "Extension bar",
+          spec: "6-inch or longer, 3/8-inch drive",
+          use: "Helps reach spark plugs buried under covers or deeper in the engine.",
+          note: "Length needed depends on engine layout.",
         },
         {
           name: "Flashlight",
-          description: "Useful for spotting cracked hoses or unplugged connectors.",
-        },
-        {
-          name: "Mechanic gloves",
-          description: "Protects your hands while working around a warm engine bay.",
+          spec: "LED handheld light",
+          use: "Helps inspect cracked hoses, disconnected plugs, and coil connectors.",
+          note: "Useful for vacuum leak checks.",
         },
       ],
       difficulty: "Intermediate",
@@ -464,13 +495,7 @@ function getDetailedDiagnosis(symptoms, vehicle) {
         "Look for signs of oil around plug wells or intake hose damage.",
         "If the issue remains unclear, fuel pressure or injector testing may be needed.",
       ],
-      parts: [
-        "Spark plugs",
-        "Ignition coil",
-        "Air filter",
-        "Vacuum hose",
-        "Fuel injector",
-      ],
+      parts: ["Spark plugs", "Ignition coil", "Air filter", "Vacuum hose", "Fuel injector"],
       videos: [
         "how to diagnose a rough idle",
         "how to read check engine codes with an OBD2 scanner",
@@ -512,20 +537,34 @@ function getDetailedDiagnosis(symptoms, vehicle) {
         "Pay attention to exactly when the sound happens: over bumps, while turning, while braking, or only at certain speeds.",
       tools: [
         {
-          name: "Flashlight",
-          description: "Useful for inspecting boots, bushings, and visibly loose parts.",
+          name: "Floor jack and jack stands",
+          spec: "Vehicle-rated capacity",
+          use: "Raises and supports the vehicle so you can check wheel play and front-end parts.",
+          note: "Never work under a vehicle supported only by a jack.",
         },
         {
-          name: "Jack and jack stands",
-          description: "Needed for safely checking wheel play and suspension parts.",
+          name: "Lug wrench or socket",
+          spec: "Usually 19mm, 21mm, or 22mm",
+          use: "Removes the wheel if a closer inspection is needed.",
+          note: "Verify your lug size first.",
         },
         {
           name: "Pry bar",
-          description: "Helps check for looseness in joints and bushings.",
+          spec: "12-inch to 18-inch",
+          use: "Helps check looseness in bushings, ball joints, and suspension components.",
+          note: "A medium pry bar is usually enough for inspection.",
         },
         {
-          name: "Lug wrench",
-          description: "Used to remove the wheel if deeper inspection is needed.",
+          name: "Flashlight",
+          spec: "LED handheld or magnetic work light",
+          use: "Helps inspect boots, bushings, cracked mounts, and loose components.",
+          note: "A good light makes small tears easier to spot.",
+        },
+        {
+          name: "Gloves",
+          spec: "Mechanic gloves",
+          use: "Protects your hands while checking sharp or dirty undercar parts.",
+          note: "Recommended for suspension inspection.",
         },
       ],
       difficulty: "Intermediate",
@@ -539,13 +578,7 @@ function getDetailedDiagnosis(symptoms, vehicle) {
         "Inspect sway bar links, ball joints, tie rod ends, and control arm bushings.",
         "If the humming changes while turning left or right, inspect the wheel bearings closely.",
       ],
-      parts: [
-        "Sway bar link",
-        "Ball joint",
-        "Tie rod end",
-        "Control arm",
-        "Wheel bearing hub assembly",
-      ],
+      parts: ["Sway bar link", "Ball joint", "Tie rod end", "Control arm", "Wheel bearing hub assembly"],
       videos: [
         "how to diagnose a front end clunk",
         "how to check wheel bearing play",
@@ -575,15 +608,21 @@ function getDetailedDiagnosis(symptoms, vehicle) {
     tools: [
       {
         name: "Flashlight",
-        description: "Useful for a basic under-hood or under-vehicle inspection.",
+        spec: "LED handheld light",
+        use: "Useful for a basic under-hood or under-vehicle inspection.",
+        note: "A bright light makes it easier to describe what you see.",
       },
       {
         name: "Phone camera",
-        description: "A short video or sound clip can help identify a problem more accurately.",
+        spec: "Photo or short video recording",
+        use: "A short video or sound clip can help identify a problem more accurately.",
+        note: "Great for capturing noises, smoke, or leaks.",
       },
       {
         name: "OBD2 scanner",
-        description: "Very helpful if any warning light is on.",
+        spec: "Basic code reader",
+        use: "Very helpful if any warning light is on.",
+        note: "Even a basic scanner can provide useful codes.",
       },
     ],
     difficulty: "Beginner",
