@@ -685,7 +685,141 @@ app.post("/diagnose", (req, res) => {
 app.get("/", (req, res) => {
   res.send("Mechanic diagnosis API is running.");
 });
+function toRadians(value) {
+  return (value * Math.PI) / 180;
+}
 
+function distanceMiles(lat1, lng1, lat2, lng2) {
+  const earthRadiusMiles = 3958.8;
+  const dLat = toRadians(lat2 - lat1);
+  const dLng = toRadians(lng2 - lng1);
+
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRadians(lat1)) *
+      Math.cos(toRadians(lat2)) *
+      Math.sin(dLng / 2) ** 2;
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return earthRadiusMiles * c;
+}
+
+function getShopSearchTerms(title = "", summary = "") {
+  const combined = `${title} ${summary}`.toLowerCase();
+
+  if (combined.includes("brake")) {
+    return {
+      categoryLabel: "Brake Repair",
+      searches: ["brake repair shop", "brake and rotor repair"],
+    };
+  }
+
+  if (combined.includes("overheat") || combined.includes("radiator")) {
+    return {
+      categoryLabel: "Cooling System Repair",
+      searches: ["radiator repair shop", "cooling system repair"],
+    };
+  }
+
+  if (combined.includes("battery") || combined.includes("alternator")) {
+    return {
+      categoryLabel: "Electrical System Repair",
+      searches: ["auto electrical repair", "alternator repair shop"],
+    };
+  }
+
+  if (combined.includes("misfire") || combined.includes("engine")) {
+    return {
+      categoryLabel: "Engine Diagnostics",
+      searches: ["engine diagnostic shop", "check engine repair"],
+    };
+  }
+
+  return {
+    categoryLabel: "General Auto Repair",
+    searches: ["auto repair shop", "mechanic shop"],
+  };
+}
+
+app.post("/shops", async (req, res) => {
+  try {
+    const { zip, title, summary } = req.body;
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+
+    if (!apiKey) {
+      return res.status(500).json({ success: false, message: "Missing API key" });
+    }
+
+    // 1. Convert ZIP to coordinates
+    const geoRes = await fetch(
+      `https://maps.googleapis.com/maps/api/geocode/json?address=${zip}&key=${apiKey}`
+    );
+    const geoData = await geoRes.json();
+
+    const location = geoData.results?.[0]?.geometry?.location;
+
+    if (!location) {
+      return res.status(400).json({ success: false, message: "Invalid ZIP" });
+    }
+
+    const { categoryLabel, searches } = getShopSearchTerms(title, summary);
+
+    let shops = [];
+
+    for (const search of searches) {
+      const placesRes = await fetch(
+        "https://places.googleapis.com/v1/places:searchText",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Goog-Api-Key": apiKey,
+            "X-Goog-FieldMask":
+              "places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.googleMapsUri",
+          },
+          body: JSON.stringify({
+            textQuery: `${search} near ${zip}`,
+            maxResultCount: 10,
+          }),
+        }
+      );
+
+      const placesData = await placesRes.json();
+
+      (placesData.places || []).forEach((place) => {
+        const miles = distanceMiles(
+          location.lat,
+          location.lng,
+          place.location.latitude,
+          place.location.longitude
+        );
+
+        if (miles <= 100) {
+          shops.push({
+            name: place.displayName?.text,
+            address: place.formattedAddress,
+            rating: place.rating || 0,
+            reviews: place.userRatingCount || 0,
+            distance: miles.toFixed(1),
+            link: place.googleMapsUri,
+          });
+        }
+      });
+    }
+
+    // sort by rating first
+    shops.sort((a, b) => b.rating - a.rating);
+
+    return res.json({
+      success: true,
+      categoryLabel,
+      shops: shops.slice(0, 10),
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false });
+  }
+});
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
