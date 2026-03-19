@@ -1,512 +1,532 @@
-import express from "express";
-import cors from "cors";
+const express = require("express");
+const cors = require("cors");
 
 const app = express();
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 5000;
 
-app.use(cors({
-  origin: [
-    "https://www.tryfixpilot.com",
-    "https://tryfixpilot.com",
-    "https://fixpilot-frontend.vercel.app"
-  ],
-  methods: ["GET", "POST", "OPTIONS"],
-  allowedHeaders: ["Content-Type"]
-}));
+app.use(cors());
 app.use(express.json());
 
-app.get("/health", (_req, res) => {
-  res.json({ ok: true, message: "FixPilot backend running" });
-});
-
-async function decodeVIN(vin) {
-  try {
-    const response = await fetch(
-      `https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvalues/${encodeURIComponent(vin)}?format=json`
-    );
-    const data = await response.json();
-    return data?.Results?.[0] || null;
-  } catch (error) {
-    return null;
-  }
+function normalizeText(value) {
+  return (value || "").toString().trim().toLowerCase();
 }
 
-function makeStoreResults(searchTerm) {
-  return [
-    {
-      name: "AutoZone",
-      distance: "2.4 mi",
-      type: "Nearby store",
-      mapUrl: `https://www.google.com/maps/search/${encodeURIComponent("AutoZone near me")}`,
-      productUrl: `https://www.autozone.com/searchresult?searchText=${encodeURIComponent(searchTerm)}`
-    },
-    {
-      name: "Advance Auto Parts",
-      distance: "3.1 mi",
-      type: "Nearby store",
-      mapUrl: `https://www.google.com/maps/search/${encodeURIComponent("Advance Auto Parts near me")}`,
-      productUrl: `https://shop.advanceautoparts.com/search?searchTerm=${encodeURIComponent(searchTerm)}`
-    },
-    {
-      name: "O'Reilly Auto Parts",
-      distance: "4.0 mi",
-      type: "Nearby store",
-      mapUrl: `https://www.google.com/maps/search/${encodeURIComponent("O'Reilly Auto Parts near me")}`,
-      productUrl: `https://www.oreillyauto.com/search?q=${encodeURIComponent(searchTerm)}`
-    }
-  ];
+function includesAny(text, keywords) {
+  return keywords.some((word) => text.includes(word));
 }
 
-function makeVideoResults(searchTerm) {
-  return [
-    {
-      title: `YouTube results for ${searchTerm}`,
-      source: "YouTube Search",
-      url: `https://www.youtube.com/results?search_query=${encodeURIComponent(searchTerm)}`
-    },
-    {
-      title: `${searchTerm} repair walkthrough`,
-      source: "YouTube Search",
-      url: `https://www.youtube.com/results?search_query=${encodeURIComponent(searchTerm + " repair walkthrough")}`
-    },
-    {
-      title: `${searchTerm} DIY fix`,
-      source: "YouTube Search",
-      url: `https://www.youtube.com/results?search_query=${encodeURIComponent(searchTerm + " DIY fix")}`
-    }
-  ];
-}
-
-function buildDefaultResult(vehicleLabel, vin, decoded) {
+function buildResponse({
+  title,
+  confidence,
+  summary,
+  why,
+  firstCheck,
+  tools,
+  difficulty,
+  safety,
+  steps,
+  parts,
+  videos,
+  whenToStop,
+  extraNotes = [],
+}) {
   return {
-    vehicle: vehicleLabel,
-    vin: vin || "",
-    decodedVIN: decoded
-      ? {
-          year: decoded?.ModelYear || "",
-          make: decoded?.Make || "",
-          model: decoded?.Model || "",
-          engine: decoded?.EngineModel || decoded?.DisplacementL || "",
-          trim: decoded?.Trim || "",
-          bodyClass: decoded?.BodyClass || ""
-        }
-      : null,
-    title: "Let’s take a look together",
-    mechanicIntro: `Alright — let’s walk through this step by step on ${vehicleLabel}. I’ll keep it simple and we’ll check the easy things first.`,
-    likelyIssue: `The problem on ${vehicleLabel} needs a closer look before we can be more certain.`,
-    likelyCauses: [
-      "A loose, worn, or damaged part",
-      "A fluid, battery, or electrical issue",
-      "A maintenance problem that has gotten worse over time"
-    ],
-    steps: [
-      {
-        title: "Step 1: Start with a quick visual check",
-        instruction: "Open the hood or look around the problem area and just look carefully before touching anything.",
-        whatToLookFor: "Loose wires, broken plastic, wet spots, smoke, strong smells, or anything hanging where it should not be.",
-        whatItMeans: "If you see obvious damage right away, that gives us a better starting point and may explain the problem quickly."
-      },
-      {
-        title: "Step 2: Think about when the problem happens",
-        instruction: "Ask yourself when this issue shows up.",
-        whatToLookFor: "Does it happen only when starting, only while driving, only when braking, or only after the engine warms up?",
-        whatItMeans: "When the problem happens often points us toward the correct system."
-      },
-      {
-        title: "Step 3: Check the easy basics",
-        instruction: "Check battery condition, fluid levels, and warning lights before replacing anything.",
-        whatToLookFor: "Low fluids, warning messages, dim lights, or weak cranking.",
-        whatItMeans: "Simple checks often explain the issue without extra work or expense."
-      }
-    ],
-    partsNeeded: [
-      "No exact parts identified yet",
-      "Basic diagnostic supplies may still be needed"
-    ],
-    tools: [
-      {
-        name: "Flashlight",
-        desc: "Helps you see dark areas under the hood or around the vehicle."
-      },
-      {
-        name: "Socket and wrench set",
-        desc: "Used for loosening or tightening common bolts, terminals, and brackets."
-      },
-      {
-        name: "Multimeter",
-        desc: "Helps check battery voltage and basic electrical problems."
-      }
-    ],
-    difficulty: "Moderate",
-    getHelpIf: "Stop and get professional help if you see smoke, fuel leaks, major coolant leaks, strong burning smells, or anything that feels unsafe.",
-    safety: "Make sure the vehicle is off, in park, and cooled down before touching parts. Never crawl under a vehicle unless it is properly supported.",
-    stores: makeStoreResults(`${vehicleLabel} vehicle diagnostic tools`),
-    videos: makeVideoResults(`${vehicleLabel} vehicle diagnostic basics`)
+    success: true,
+    result: {
+      title,
+      confidence,
+      summary,
+      why,
+      firstCheck,
+      tools,
+      difficulty,
+      safety,
+      steps,
+      parts,
+      videos,
+      whenToStop,
+      extraNotes,
+    },
   };
 }
 
-app.post("/diagnose", async (req, res) => {
-  const { problem, year, make, model, vin } = req.body ?? {};
+function getDetailedDiagnosis(symptoms, vehicle) {
+  const text = normalizeText(symptoms);
+  const year = vehicle.year || "";
+  const make = vehicle.make || "";
+  const model = vehicle.model || "";
+  const engine = vehicle.engine || "";
+  const vin = vehicle.vin || "";
 
-  if (!problem || typeof problem !== "string") {
-    return res.status(400).json({ error: "Please describe the problem first." });
-  }
+  const vehicleLine = [year, make, model, engine].filter(Boolean).join(" ").trim();
 
-  const lower = problem.toLowerCase();
+  // Battery / alternator / no start
+  if (
+    includesAny(text, [
+      "won't start",
+      "wont start",
+      "no start",
+      "clicking",
+      "battery",
+      "dead battery",
+      "slow crank",
+      "crank slow",
+      "needs jump",
+      "won't crank",
+      "wont crank",
+    ])
+  ) {
+    const likelyAlternator = includesAny(text, ["battery light", "dies while driving", "keeps needing jump", "after jump"]);
 
-  let decoded = null;
-  if (vin && typeof vin === "string" && vin.trim().length >= 10) {
-    decoded = await decodeVIN(vin.trim());
-  }
-
-  const decodedYear = decoded?.ModelYear || "";
-  const decodedMake = decoded?.Make || "";
-  const decodedModel = decoded?.Model || "";
-  const decodedEngine = decoded?.EngineModel || decoded?.DisplacementL || "";
-
-  const vehicleLabel =
-    decoded && (decodedYear || decodedMake || decodedModel)
-      ? `${decodedYear} ${decodedMake} ${decodedModel}${decodedEngine ? ` (${decodedEngine})` : ""}`.trim()
-      : [year, make, model].filter(Boolean).join(" ").trim() || "your vehicle";
-
-  let result = buildDefaultResult(vehicleLabel, vin, decoded);
-
-  if (lower.includes("won't start") || lower.includes("wont start") || lower.includes("no start")) {
-    result = {
-      ...result,
-      title: "Let’s figure out why it won’t start",
-      mechanicIntro: `Okay — if ${vehicleLabel} will not start, don’t panic. We’re going to check the easy things first, one step at a time.`,
-      likelyIssue: `The most likely causes on ${vehicleLabel} are a weak battery, bad battery connection, starter problem, or a fuel/ignition issue.`,
-      likelyCauses: [
-        "Weak or discharged battery",
-        "Loose or corroded battery terminals",
-        "Starter motor or starter relay problem",
-        "Fuel delivery or ignition problem"
-      ],
-      steps: [
-        {
-          title: "Step 1: Look at the battery first",
-          instruction: "Open the hood and find the battery. Do not remove anything yet. Just look closely.",
-          whatToLookFor: "White or blue crust on the terminals, loose cable ends, cracked battery case, or anything wet around the battery.",
-          whatItMeans: "Dirty or loose battery connections can stop the vehicle from starting even if the battery itself is still okay."
-        },
-        {
-          title: "Step 2: Try starting it and listen carefully",
-          instruction: "Sit in the driver seat and try to start the vehicle while listening closely.",
-          whatToLookFor: "A single click, many rapid clicks, slow cranking, or no sound at all.",
-          whatItMeans: "Rapid clicking usually points to a weak battery. One click may point to the starter. No sound at all can mean a connection, relay, or electrical issue."
-        },
-        {
-          title: "Step 3: Check battery strength",
-          instruction: "Use a battery tester or a multimeter if you have one. If not, try a safe jump start.",
-          whatToLookFor: "If the vehicle starts with a jump, or if voltage is very low, that is important.",
-          whatItMeans: "If it starts with a jump, the battery is weak, discharged, or not being charged correctly."
-        },
-        {
-          title: "Step 4: Check what happens after it starts",
-          instruction: "If it starts, let it idle and watch the dash.",
-          whatToLookFor: "Battery light on the dash, dim lights, or rough electrical behavior.",
-          whatItMeans: "That can mean the charging system is not keeping the battery charged."
-        }
-      ],
-      partsNeeded: [
-        "Battery terminal cleaning supplies",
-        "Replacement battery if testing shows the battery is bad",
-        "Starter relay or starter if confirmed faulty"
-      ],
+    return buildResponse({
+      title: likelyAlternator
+        ? "Most Likely Issue: Charging System Problem"
+        : "Most Likely Issue: Weak Battery or Poor Battery Connection",
+      confidence: likelyAlternator ? "High" : "Medium-High",
+      summary: likelyAlternator
+        ? `Alright, based on what you described${vehicleLine ? ` for your ${vehicleLine}` : ""}, the charging system is one of the most likely problems. That usually means the battery is not being charged correctly while the engine is running.`
+        : `Alright, based on what you described${vehicleLine ? ` for your ${vehicleLine}` : ""}, the most likely issue is a weak battery, loose battery terminal, or corroded battery connection.`,
+      why: likelyAlternator
+        ? "When a vehicle starts after a jump but later dies again, or the battery light is on, that often points to the alternator, battery cables, or charging circuit."
+        : "A clicking sound, slow cranking, or no crank at all usually happens when the battery voltage is too low or the battery terminals are dirty or loose.",
+      firstCheck:
+        "Start by checking both battery terminals. Make sure they are tight, clean, and free of white or green corrosion. Then check whether the battery is older than about 3 to 5 years.",
       tools: [
         {
-          name: "Flashlight",
-          desc: "Helps you clearly see the battery, cables, and starter connections."
+          name: "10mm wrench or socket",
+          description: "Common size used to loosen and tighten battery terminal clamps.",
         },
         {
-          name: "Wrench or socket set",
-          desc: "Used to tighten or remove battery terminal connections safely."
+          name: "Battery terminal cleaning brush",
+          description: "Helps remove corrosion so the battery makes good contact.",
         },
-        {
-          name: "Battery tester or multimeter",
-          desc: "Checks if the battery has enough voltage and helps confirm whether it is weak."
-        },
-        {
-          name: "Wire brush or battery terminal cleaner",
-          desc: "Removes corrosion from the battery terminals so the connection is cleaner and stronger."
-        }
-      ],
-      difficulty: "Moderate",
-      getHelpIf: "Get professional help if the vehicle still will not start after battery support, if cables get hot, or if wiring looks burned or damaged.",
-      safety: "Keep the vehicle in park, keep hands away from moving belts and fans, and never let tools touch both battery terminals at the same time.",
-      stores: makeStoreResults(`${vehicleLabel} battery starter relay battery terminals`),
-      videos: makeVideoResults(`${vehicleLabel} wont start battery starter diagnosis`)
-    };
-  } else if (lower.includes("brake")) {
-    result = {
-      ...result,
-      title: "Let’s check your brakes",
-      mechanicIntro: `Alright — brake problems matter, so we’ll go slowly and keep this safe while we figure out what ${vehicleLabel} is trying to tell us.`,
-      likelyIssue: `The most likely causes on ${vehicleLabel} are worn brake pads, rotor wear, or low brake fluid.`,
-      likelyCauses: [
-        "Worn brake pads",
-        "Scored or warped rotors",
-        "Low brake fluid",
-        "Brake hardware or caliper problem"
-      ],
-      steps: [
-        {
-          title: "Step 1: Pay attention to the sound",
-          instruction: "Drive very slowly in a safe place and press the brakes gently.",
-          whatToLookFor: "Squealing, grinding, scraping, or a weak brake pedal.",
-          whatItMeans: "Squealing often means worn pads. Grinding can mean the pads are very worn and metal may be contacting the rotor."
-        },
-        {
-          title: "Step 2: Check the brake fluid under the hood",
-          instruction: "Open the hood and find the brake fluid reservoir. It is usually near the back of the engine bay on the driver side.",
-          whatToLookFor: "Fluid level below the minimum line.",
-          whatItMeans: "Low fluid can happen when pads are worn, or it may point to a leak if it is very low."
-        },
-        {
-          title: "Step 3: Look through the wheel if possible",
-          instruction: "Use a flashlight and look through the wheel openings toward the brakes.",
-          whatToLookFor: "Very thin brake pad material, deep grooves on the rotor, or wetness around the brake assembly.",
-          whatItMeans: "Thin pads mean replacement is near. Wetness can mean a leak, which is more serious."
-        },
-        {
-          title: "Step 4: Decide if it is safe to keep driving",
-          instruction: "Think about how the pedal feels and how well the vehicle stops.",
-          whatToLookFor: "Soft pedal, long stopping distance, or strong pulling to one side.",
-          whatItMeans: "Those are signs you should stop and get professional help sooner rather than later."
-        }
-      ],
-      partsNeeded: [
-        "Brake pads",
-        "Brake rotors if badly worn or damaged",
-        "Brake fluid if low and no major leak is found"
-      ],
-      tools: [
         {
           name: "Flashlight",
-          desc: "Helps you inspect the brake area through the wheel and look for leaks or wear."
-        },
-        {
-          name: "Lug wrench",
-          desc: "Used to loosen and remove the wheel if you need a closer inspection."
-        },
-        {
-          name: "Floor jack",
-          desc: "Lifts the vehicle so the wheel can be removed."
-        },
-        {
-          name: "Jack stands",
-          desc: "Safely support the vehicle after lifting. Never rely on the jack alone."
-        },
-        {
-          name: "C-clamp or brake piston tool",
-          desc: "Used later if brake pads are replaced and the caliper piston needs to be pushed back in."
-        }
-      ],
-      difficulty: "Moderate",
-      getHelpIf: "Get professional help immediately if the brake pedal feels unsafe, goes toward the floor, or the vehicle does not stop normally.",
-      safety: "Never work under a vehicle unless it is properly supported, and never drive if braking feels unsafe.",
-      stores: makeStoreResults(`${vehicleLabel} brake pads brake rotors brake fluid`),
-      videos: makeVideoResults(`${vehicleLabel} brake pad rotor replacement`)
-    };
-  } else if (lower.includes("overheat") || lower.includes("hot") || lower.includes("coolant")) {
-    result = {
-      ...result,
-      title: "Let’s check why it’s overheating",
-      mechanicIntro: `Okay — overheating can damage an engine fast, so let’s keep this simple and safe while we check ${vehicleLabel}.`,
-      likelyIssue: `The most likely causes on ${vehicleLabel} are low coolant, a hose leak, thermostat trouble, or a cooling fan issue.`,
-      likelyCauses: [
-        "Coolant leak from a hose, radiator, or fitting",
-        "Stuck thermostat",
-        "Cooling fan not working correctly",
-        "Coolant level too low"
-      ],
-      steps: [
-        {
-          title: "Step 1: Let it cool down completely",
-          instruction: "Turn the vehicle off and wait before opening anything in the cooling system.",
-          whatToLookFor: "Do not remove the radiator cap while the engine is hot.",
-          whatItMeans: "Opening it hot can cause serious burns from hot coolant and pressure."
-        },
-        {
-          title: "Step 2: Check coolant level",
-          instruction: "Once the engine is cool, look at the coolant reservoir.",
-          whatToLookFor: "A level below the minimum line or an empty tank.",
-          whatItMeans: "Low coolant often means there is a leak somewhere, even if you do not see it right away."
-        },
-        {
-          title: "Step 3: Look for signs of leaking",
-          instruction: "Use a flashlight and inspect the radiator, hose connections, and the ground under the vehicle.",
-          whatToLookFor: "Wet spots, dried coolant residue, or colored fluid under the vehicle.",
-          whatItMeans: "Those signs help show where coolant is escaping."
-        },
-        {
-          title: "Step 4: Think about what happened before it got hot",
-          instruction: "Ask yourself whether it overheats while idling, while driving, or all the time.",
-          whatToLookFor: "Only overheating at idle can point toward the fan. Overheating all the time can point to low coolant or thermostat trouble.",
-          whatItMeans: "When it overheats helps narrow down the real cause."
-        }
-      ],
-      partsNeeded: [
-        "Coolant",
-        "Radiator hose if leaking",
-        "Thermostat if confirmed faulty"
-      ],
-      tools: [
-        {
-          name: "Flashlight",
-          desc: "Helps find coolant leaks around hoses, the radiator, and the engine bay."
+          description: "Makes it easier to inspect cable ends, cracks, and corrosion.",
         },
         {
           name: "Gloves",
-          desc: "Protects your hands while checking hoses and coolant areas."
+          description: "Protects your hands from corrosion and sharp edges.",
         },
-        {
-          name: "Coolant funnel",
-          desc: "Helps refill coolant more cleanly and with less mess."
-        },
-        {
-          name: "Pliers",
-          desc: "Useful for some hose clamps if you need to inspect or replace a hose."
-        }
-      ],
-      difficulty: "Moderate",
-      getHelpIf: "Stop driving and get help if the temperature keeps climbing, steam is coming out, or coolant is pouring out quickly.",
-      safety: "A hot cooling system can burn you badly. Let it cool before touching anything.",
-      stores: makeStoreResults(`${vehicleLabel} coolant radiator hose thermostat`),
-      videos: makeVideoResults(`${vehicleLabel} overheating coolant hose thermostat diagnosis`)
-    };
-  } else if (lower.includes("battery") || lower.includes("charge") || lower.includes("charging")) {
-    result = {
-      ...result,
-      title: "Let’s check the battery and charging system",
-      mechanicIntro: `Alright — if the battery on ${vehicleLabel} will not hold a charge, we need to figure out whether the battery is bad, the alternator is weak, or something is draining power.`,
-      likelyIssue: `The most likely causes on ${vehicleLabel} are a weak battery, bad cable connection, charging problem, or electrical draw while parked.`,
-      likelyCauses: [
-        "Battery no longer holds a charge",
-        "Alternator not charging properly",
-        "Loose or corroded battery connections",
-        "Electrical draw while the vehicle is off"
-      ],
-      steps: [
-        {
-          title: "Step 1: Look at the battery terminals",
-          instruction: "Open the hood and inspect the battery connections first.",
-          whatToLookFor: "Loose cable ends, white or blue corrosion, damaged cables, or cracked battery case.",
-          whatItMeans: "A bad connection can prevent charging and starting even if the battery itself is still usable."
-        },
-        {
-          title: "Step 2: Think about when the battery goes dead",
-          instruction: "Ask yourself whether it dies after sitting, or while driving.",
-          whatToLookFor: "Dead after sitting overnight, or battery light while driving.",
-          whatItMeans: "Dead after sitting can mean battery age or an electrical draw. Trouble while driving can point to the alternator."
-        },
-        {
-          title: "Step 3: Test battery voltage",
-          instruction: "Use a multimeter or battery tester if you have one.",
-          whatToLookFor: "Low voltage with engine off, or weak charging voltage with engine running.",
-          whatItMeans: "Low voltage at rest can mean a weak battery. Low voltage while running can mean poor charging."
-        },
-        {
-          title: "Step 4: Check for warning lights",
-          instruction: "Start the vehicle if possible and look at the dash.",
-          whatToLookFor: "Battery light, flickering lights, or dim headlights.",
-          whatItMeans: "Those signs often suggest charging system trouble."
-        }
-      ],
-      partsNeeded: [
-        "Battery if testing shows it is bad",
-        "Battery terminal cleaner",
-        "Alternator if charging output is confirmed low"
-      ],
-      tools: [
         {
           name: "Multimeter",
-          desc: "Measures battery voltage and helps check whether the alternator is charging."
+          description: "Used to measure battery voltage and charging voltage.",
         },
-        {
-          name: "Battery tester",
-          desc: "Checks battery condition under load more clearly than a simple voltage reading."
-        },
-        {
-          name: "Wrench set",
-          desc: "Used to remove or tighten battery terminals and hold-down hardware."
-        },
-        {
-          name: "Terminal cleaner or wire brush",
-          desc: "Cleans corrosion off the battery posts and cable ends."
-        }
       ],
-      difficulty: "Moderate",
-      getHelpIf: "Get professional help if charging voltage is unstable, cables are damaged, or the battery keeps dying after a confirmed good battery is installed.",
-      safety: "Keep metal tools from touching both battery terminals at the same time.",
-      stores: makeStoreResults(`${vehicleLabel} battery alternator battery terminal cleaner`),
-      videos: makeVideoResults(`${vehicleLabel} battery alternator charging system diagnosis`)
-    };
-  } else if (lower.includes("air suspension") || lower.includes("suspension")) {
-    result = {
-      ...result,
-      title: "Let’s check the suspension warning",
-      mechanicIntro: `Okay — if ${vehicleLabel} has an air suspension warning or sits low, we want to check it carefully and safely.`,
-      likelyIssue: `The most likely causes on ${vehicleLabel} are an air leak, ride-height sensor problem, weak compressor, or control fault.`,
-      likelyCauses: [
-        "Air spring or air line leak",
-        "Ride-height sensor fault",
-        "Weak or failed compressor",
-        "Electrical or control module problem"
-      ],
+      difficulty: "Beginner to Intermediate",
+      safety:
+        "Do not let metal tools touch both battery terminals at the same time. Wear eye protection if corrosion is present. If the battery is cracked, leaking, or swollen, do not continue.",
       steps: [
-        {
-          title: "Step 1: Look at the way the vehicle is sitting",
-          instruction: "Park on a flat surface and stand back so you can see the whole vehicle.",
-          whatToLookFor: "One corner lower than the others or the whole vehicle sitting unevenly.",
-          whatItMeans: "That often points toward a leak or problem in that corner of the suspension."
-        },
-        {
-          title: "Step 2: Listen for the compressor",
-          instruction: "With the vehicle on, listen carefully near the air suspension compressor area.",
-          whatToLookFor: "Compressor running a lot, running too long, or not running at all.",
-          whatItMeans: "Running too much can mean an air leak. Not running at all can mean electrical or compressor trouble."
-        },
-        {
-          title: "Step 3: Check for obvious air leaks",
-          instruction: "If safely accessible, inspect lines and fittings with a flashlight.",
-          whatToLookFor: "Broken air lines, loose fittings, or bubbling if you use soapy water on suspected leak points.",
-          whatItMeans: "Bubbles usually show escaping air."
-        },
-        {
-          title: "Step 4: Watch what happens over time",
-          instruction: "Notice if the vehicle sinks while parked for a while.",
-          whatToLookFor: "Vehicle lowering after sitting overnight.",
-          whatItMeans: "That strongly suggests an air leak somewhere in the system."
-        }
+        "Turn the vehicle off and remove the key.",
+        "Open the hood and locate the battery.",
+        "Inspect both battery terminals for looseness, corrosion, or damaged cables.",
+        "If corrosion is present, disconnect the negative terminal first, then the positive terminal.",
+        "Clean the terminals and cable ends until the metal looks clean.",
+        "Reconnect the positive terminal first, then the negative terminal, and tighten both securely.",
+        "Use a multimeter to check battery voltage. Around 12.6V with engine off is a healthy fully charged battery.",
+        "Start the engine and check charging voltage. Around 13.5V to 14.8V usually means the alternator is charging.",
+        "If voltage stays low while the engine is running, the alternator or charging circuit may be failing.",
       ],
-      partsNeeded: [
-        "Air line or fitting if leaking",
-        "Ride-height sensor if faulty",
-        "Air compressor assembly if confirmed bad"
+      parts: [
+        "Battery",
+        "Battery terminal ends",
+        "Battery cables",
+        "Alternator",
+        "Serpentine belt",
       ],
+      videos: [
+        "How to clean battery terminals safely",
+        "How to test a car battery with a multimeter",
+        "How to test an alternator charging system",
+      ],
+      whenToStop:
+        "Stop and call a mechanic if the battery is leaking, the cables are badly damaged, the vehicle dies while driving, or you are not comfortable working around electrical components.",
+      extraNotes: [
+        vin ? `VIN entered: ${vin}` : "No VIN entered.",
+        "Before replacing the battery or alternator, always test voltage first. Guessing can waste money.",
+      ],
+    });
+  }
+
+  // Overheating / coolant
+  if (
+    includesAny(text, [
+      "overheat",
+      "overheating",
+      "hot",
+      "temperature",
+      "coolant",
+      "radiator",
+      "steam",
+      "thermostat",
+      "engine temp",
+      "running hot",
+    ])
+  ) {
+    return buildResponse({
+      title: "Most Likely Issue: Cooling System Problem",
+      confidence: "High",
+      summary: `Based on your description${vehicleLine ? ` for your ${vehicleLine}` : ""}, your vehicle may have a cooling system issue such as low coolant, a stuck thermostat, a radiator fan problem, or a leak.`,
+      why: "An overheating engine usually means heat is not leaving the engine correctly. That can happen when coolant is low, coolant is not circulating, airflow is poor, or pressure is being lost.",
+      firstCheck:
+        "Let the engine cool completely before touching anything. Then check the coolant level in the overflow reservoir and look for obvious leaks under the vehicle.",
       tools: [
         {
           name: "Flashlight",
-          desc: "Helps inspect lines, fittings, and suspension components."
+          description: "Helps inspect hoses, the radiator area, and leak spots.",
         },
         {
-          name: "Spray bottle with soapy water",
-          desc: "Helps reveal air leaks by making bubbles where air escapes."
+          name: "Gloves",
+          description: "Protects hands from hot surfaces and coolant residue.",
         },
         {
-          name: "Basic socket and wrench set",
-          desc: "Useful for removing covers and accessing components if needed."
-        }
+          name: "Coolant funnel",
+          description: "Makes it easier to add coolant without spilling.",
+        },
+        {
+          name: "Pliers",
+          description: "Useful for spring hose clamps if hoses need inspection.",
+        },
+        {
+          name: "OBD2 scanner",
+          description: "Can help verify engine temperature and cooling fan operation if supported.",
+        },
       ],
-      difficulty: "Advanced",
-      getHelpIf: "Get professional help if the vehicle sags badly, compressor runs constantly, or the suspension feels unsafe.",
-      safety: "Never place yourself under a vehicle with unstable ride height unless it is properly supported.",
-      stores: makeStoreResults(`${vehicleLabel} air suspension compressor ride height sensor air line fitting`),
-      videos: makeVideoResults(`${vehicleLabel} air suspension compressor ride height sensor diagnosis`)
-    };
+      difficulty: "Beginner to Intermediate",
+      safety:
+        "Never remove the radiator cap while the engine is hot. Hot coolant can spray out and cause serious burns.",
+      steps: [
+        "Park the vehicle and let the engine cool fully.",
+        "Check the coolant level in the overflow bottle.",
+        "Inspect the ground under the vehicle for coolant leaks.",
+        "Look at the upper and lower radiator hoses for swelling, cracking, or wet spots.",
+        "Start the engine and watch the temperature gauge.",
+        "When the engine warms up, see whether the radiator fan turns on.",
+        "If the fan does not turn on, the fan motor, relay, sensor, or wiring may be the issue.",
+        "If coolant is low, top it off with the correct coolant type and monitor for leaks.",
+        "If the engine still overheats, the thermostat, water pump, radiator, or head gasket may need professional inspection.",
+      ],
+      parts: [
+        "Coolant",
+        "Thermostat",
+        "Radiator hose",
+        "Radiator cap",
+        "Cooling fan relay",
+        "Water pump",
+      ],
+      videos: [
+        "How to check coolant level safely",
+        "How to diagnose an overheating engine",
+        "How to tell if a thermostat is stuck",
+      ],
+      whenToStop:
+        "Stop immediately if you see steam, smell burning coolant, or the temperature gauge enters the red zone. Continuing to drive can severely damage the engine.",
+      extraNotes: [
+        "If overheating happens only at idle, check the radiator fan first.",
+        "If overheating happens mostly at highway speed, coolant flow or restriction may be part of the problem.",
+      ],
+    });
   }
 
-  res.json(result);
+  // Brake issues
+  if (
+    includesAny(text, [
+      "brake",
+      "brakes",
+      "squeak",
+      "squealing",
+      "grinding",
+      "soft pedal",
+      "brake pedal",
+      "rotor",
+      "stopping",
+    ])
+  ) {
+    return buildResponse({
+      title: "Most Likely Issue: Brake Wear or Brake Hardware Problem",
+      confidence: "High",
+      summary: `Based on your symptoms${vehicleLine ? ` on your ${vehicleLine}` : ""}, the issue may be worn brake pads, damaged rotors, low brake fluid, or sticking brake hardware.`,
+      why: "Squealing often points to pad wear indicators. Grinding can mean the pads are completely worn down. A soft pedal can point to air in the system, low fluid, or a hydraulic leak.",
+      firstCheck:
+        "Start by checking brake fluid level and listening carefully to when the noise happens: light braking, hard braking, or all the time.",
+      tools: [
+        {
+          name: "Lug wrench",
+          description: "Used to remove the wheel if you inspect the brakes directly.",
+        },
+        {
+          name: "Jack and jack stands",
+          description: "Needed to safely raise and support the vehicle.",
+        },
+        {
+          name: "Flashlight",
+          description: "Helps inspect pad thickness and rotor condition.",
+        },
+        {
+          name: "Brake cleaner",
+          description: "Used to clean brake dust and parts during inspection.",
+        },
+        {
+          name: "C-clamp or brake piston tool",
+          description: "Used when compressing the caliper piston during brake work.",
+        },
+      ],
+      difficulty: "Intermediate",
+      safety:
+        "Do not drive the vehicle if the brakes grind badly, the pedal feels unsafe, or the vehicle pulls hard while braking.",
+      steps: [
+        "Check brake fluid in the reservoir.",
+        "Listen for whether the noise happens only while braking or also while driving.",
+        "Inspect wheel areas for excessive brake dust or signs of leakage.",
+        "If safe to do so, remove the wheel and inspect the brake pads.",
+        "Look for thin pads, deep rotor grooves, uneven wear, or stuck hardware.",
+        "If pads are thin or rotors are damaged, replace parts in axle pairs.",
+        "If the pedal feels soft, inspect for leaks and consider bleeding the brake system.",
+      ],
+      parts: [
+        "Brake pads",
+        "Brake rotors",
+        "Brake fluid",
+        "Caliper slide pins",
+        "Brake hardware kit",
+      ],
+      videos: [
+        "How to inspect brake pads and rotors",
+        "How to tell the difference between squeaking and grinding brakes",
+        "How to check brake fluid safely",
+      ],
+      whenToStop:
+        "Stop and get professional help if braking distance increases, the pedal sinks, fluid is leaking, or metal-on-metal grinding is present.",
+      extraNotes: [
+        "Brake noises should never be ignored. A small squeak can become an expensive repair if left too long.",
+      ],
+    });
+  }
+
+  // Engine misfire / rough idle / check engine
+  if (
+    includesAny(text, [
+      "misfire",
+      "rough idle",
+      "rough",
+      "check engine",
+      "shaking",
+      "hesitation",
+      "stumble",
+      "engine light",
+      "jerking",
+    ])
+  ) {
+    return buildResponse({
+      title: "Most Likely Issue: Ignition or Air/Fuel Problem",
+      confidence: "Medium-High",
+      summary: `From what you described${vehicleLine ? ` on your ${vehicleLine}` : ""}, the engine may be misfiring due to worn spark plugs, a weak ignition coil, a vacuum leak, or a fuel delivery problem.`,
+      why: "When an engine shakes, hesitates, or idles poorly, one or more cylinders may not be burning fuel correctly.",
+      firstCheck:
+        "Start by checking whether the check engine light is on. If it is, scan the vehicle for trouble codes before replacing parts.",
+      tools: [
+        {
+          name: "OBD2 scanner",
+          description: "Reads fault codes that can point toward the affected cylinder or system.",
+        },
+        {
+          name: "Spark plug socket",
+          description: "Used to remove and inspect spark plugs.",
+        },
+        {
+          name: "Ratchet and extension",
+          description: "Helps reach coils and spark plugs.",
+        },
+        {
+          name: "Flashlight",
+          description: "Useful for spotting cracked hoses or loose connectors.",
+        },
+        {
+          name: "Mechanic gloves",
+          description: "Protects your hands while working around a hot engine bay.",
+        },
+      ],
+      difficulty: "Intermediate",
+      safety:
+        "Do not continue driving if the check engine light is flashing. That can mean an active misfire that may damage the catalytic converter.",
+      steps: [
+        "Check if the check engine light is on or flashing.",
+        "Use an OBD2 scanner to read codes.",
+        "Inspect ignition coil connectors and vacuum hoses for loose or cracked parts.",
+        "Check spark plug service history if known.",
+        "If a code points to a specific cylinder, inspect that coil and spark plug first.",
+        "Look for signs of oil in spark plug wells or damaged intake hoses.",
+        "If the problem remains unclear, fuel pressure or injector testing may be needed.",
+      ],
+      parts: [
+        "Spark plugs",
+        "Ignition coil",
+        "Air filter",
+        "Vacuum hose",
+        "Fuel injector",
+      ],
+      videos: [
+        "How to diagnose a rough idle",
+        "How to read check engine codes with an OBD2 scanner",
+        "How to inspect spark plugs and coils",
+      ],
+      whenToStop:
+        "Stop and get help if the engine shakes violently, the light flashes, power drops severely, or the engine stalls repeatedly.",
+      extraNotes: [
+        "Reading codes first can save a lot of guesswork and unnecessary parts replacement.",
+      ],
+    });
+  }
+
+  // Suspension / steering noise
+  if (
+    includesAny(text, [
+      "clunk",
+      "knock",
+      "suspension",
+      "steering",
+      "turning",
+      "wheel bearing",
+      "humming",
+      "front end",
+      "rattle",
+    ])
+  ) {
+    return buildResponse({
+      title: "Most Likely Issue: Suspension, Steering, or Wheel Bearing Problem",
+      confidence: "Medium",
+      summary: `Based on your description${vehicleLine ? ` for your ${vehicleLine}` : ""}, the noise may be coming from a worn suspension part, steering component, or wheel bearing.`,
+      why: "Clunking over bumps can point to sway bar links, ball joints, or control arm bushings. A humming sound that changes with speed can point to a wheel bearing.",
+      firstCheck:
+        "Pay attention to when the sound happens: over bumps, while turning, while braking, or only at certain speeds.",
+      tools: [
+        {
+          name: "Flashlight",
+          description: "Useful for checking boots, bushings, and loose parts.",
+        },
+        {
+          name: "Jack and jack stands",
+          description: "Needed to safely inspect wheel play and suspension components.",
+        },
+        {
+          name: "Pry bar",
+          description: "Helps check for movement in worn suspension joints and bushings.",
+        },
+        {
+          name: "Lug wrench",
+          description: "Used to remove the wheel if deeper inspection is needed.",
+        },
+      ],
+      difficulty: "Intermediate",
+      safety:
+        "Do not continue driving if steering feels loose, the vehicle wanders badly, or a wheel bearing is making loud grinding noises.",
+      steps: [
+        "Drive slowly in a safe area and notice exactly when the noise occurs.",
+        "Inspect tires for uneven wear.",
+        "Check under the vehicle for obviously loose or damaged parts.",
+        "Raise the suspected corner safely and check for wheel play.",
+        "Inspect sway bar links, ball joints, control arm bushings, and tie rod ends.",
+        "If humming changes when turning left or right, inspect wheel bearings closely.",
+      ],
+      parts: [
+        "Sway bar link",
+        "Ball joint",
+        "Tie rod end",
+        "Control arm",
+        "Wheel bearing hub assembly",
+      ],
+      videos: [
+        "How to find a front end clunk",
+        "How to check wheel bearing play",
+        "How to inspect suspension components safely",
+      ],
+      whenToStop:
+        "Stop and get professional help if steering becomes unpredictable, a wheel has excessive play, or metal parts appear cracked or separated.",
+      extraNotes: [
+        "A small suspension noise can turn into a major safety issue if ignored for too long.",
+      ],
+    });
+  }
+
+  // Fallback
+  return buildResponse({
+    title: "Possible Issue: More Information Needed",
+    confidence: "Low to Medium",
+    summary: `I can help, but the symptom description is still too broad${vehicleLine ? ` for your ${vehicleLine}` : ""} to give a strong diagnosis yet.`,
+    why: "Vehicle problems are much easier to narrow down when we know exactly what the car is doing, when it happens, and whether any warning lights are on.",
+    firstCheck:
+      "Try describing the symptom with more detail, such as noise type, warning lights, smell, whether the engine starts, when it happens, and whether the issue is getting worse.",
+    tools: [
+      {
+        name: "Flashlight",
+        description: "Useful for a basic visual inspection.",
+      },
+      {
+        name: "Phone camera",
+        description: "A short video or sound recording can help identify a noise more accurately.",
+      },
+      {
+        name: "OBD2 scanner",
+        description: "Helpful if a warning light is on.",
+      },
+    ],
+    difficulty: "Beginner",
+    safety:
+      "If you smell fuel, see smoke, hear grinding, notice overheating, or the brakes feel unsafe, do not keep driving the vehicle.",
+    steps: [
+      "Describe what the vehicle is doing.",
+      "Say when it happens: cold start, idle, driving, braking, turning, or accelerating.",
+      "Mention any warning lights on the dashboard.",
+      "Mention any smells, leaks, smoke, or recent repairs.",
+      "Add whether the problem happened suddenly or got worse over time.",
+    ],
+    parts: ["Unknown until symptom is narrowed down"],
+    videos: [
+      "How to describe car symptoms clearly",
+      "How to use an OBD2 scanner for beginners",
+    ],
+    whenToStop:
+      "If the issue affects braking, steering, overheating, or severe engine performance, have the vehicle inspected before driving further.",
+    extraNotes: [
+      vin ? `VIN entered: ${vin}` : "No VIN entered.",
+      "The more detail the user gives, the more accurate the diagnosis can become.",
+    ],
+  });
 }
+
+app.post("/diagnose", (req, res) => {
+  try {
+    const {
+      symptoms = "",
+      year = "",
+      make = "",
+      model = "",
+      engine = "",
+      vin = "",
+    } = req.body || {};
+
+    const diagnosis = getDetailedDiagnosis(symptoms, {
+      year,
+      make,
+      model,
+      engine,
+      vin,
+    });
+
+    return res.status(200).json(diagnosis);
+  } catch (error) {
+    console.error("Diagnosis error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong while analyzing the symptoms.",
+    });
+  }
+});
+
+app.get("/", (req, res) => {
+  res.send("Mechanic diagnosis API is running.");
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
