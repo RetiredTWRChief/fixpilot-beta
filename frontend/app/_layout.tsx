@@ -11,7 +11,7 @@ function RootNavigator() {
 
   useEffect(() => {
     if (loading) return;
-    const inAuth = segments[0] === 'login' || segments[0] === 'register';
+    const inAuth = segments[0] === 'login' || segments[0] === 'register' || segments[0] === 'forgot-password';
     if (!user && !inAuth) {
       router.replace('/login');
     } else if (user && inAuth) {
@@ -32,6 +32,7 @@ function RootNavigator() {
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#0A0A0A' } }}>
       <Stack.Screen name="login" />
       <Stack.Screen name="register" />
+      <Stack.Screen name="forgot-password" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="results" options={{ animation: 'none' }} />
     </Stack>

@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet,
-  ActivityIndicator, Linking,
+  ActivityIndicator, Linking, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 
 const API = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -15,6 +16,9 @@ export default function ResultsScreen() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  const [shops, setShops] = useState<any[]>([]);
+  const [shopsLoading, setShopsLoading] = useState(false);
+  const [shopsError, setShopsError] = useState('');
 
   useEffect(() => {
     if (id) {
@@ -68,7 +72,32 @@ export default function ResultsScreen() {
     { key: 'diy', label: 'DIY', icon: 'tools' as const },
     { key: 'parts', label: 'Parts', icon: 'cog-outline' as const },
     { key: 'videos', label: 'Videos', icon: 'play-circle-outline' as const },
+    { key: 'shops', label: 'Shops', icon: 'map-marker-outline' as const },
   ];
+
+  const fetchNearbyShops = async () => {
+    setShopsLoading(true);
+    setShopsError('');
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setShopsError('Location permission required to find nearby shops.');
+        setShopsLoading(false);
+        return;
+      }
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const res = await fetch(`${API}/api/nearby-shops`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lat: loc.coords.latitude, lng: loc.coords.longitude }),
+      });
+      const result = await res.json();
+      setShops(result.results || []);
+      if (result.results?.length === 0) setShopsError('No auto repair shops found nearby.');
+    } catch (e) {
+      setShopsError('Could not fetch nearby shops. Check your location settings.');
+    }
+    setShopsLoading(false);
+  };
 
   const renderOverview = () => (
     <View>
@@ -284,6 +313,63 @@ export default function ResultsScreen() {
         {activeTab === 'diy' && renderDiy()}
         {activeTab === 'parts' && renderParts()}
         {activeTab === 'videos' && renderVideos()}
+        {activeTab === 'shops' && (
+          <View>
+            {shops.length === 0 && !shopsLoading && !shopsError && (
+              <View style={styles.card}>
+                <Text style={styles.cardLabel}>NEARBY MECHANICS</Text>
+                <Text style={styles.cardText}>Find auto repair shops near your location.</Text>
+                <TouchableOpacity testID="find-shops-button" style={styles.findShopsBtn} onPress={fetchNearbyShops}>
+                  <MaterialCommunityIcons name="map-marker-radius" size={18} color="#000" />
+                  <Text style={styles.findShopsBtnText}>Find Nearby Shops</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            {shopsLoading && (
+              <View style={styles.card}>
+                <ActivityIndicator color="#A3A3A3" size="small" />
+                <Text style={[styles.cardText, { textAlign: 'center', marginTop: 8 }]}>Finding nearby shops...</Text>
+              </View>
+            )}
+            {shopsError && !shopsLoading && (
+              <View style={styles.card}>
+                <Text style={styles.cardLabel}>NEARBY MECHANICS</Text>
+                <Text style={[styles.cardText, { color: '#F59E0B' }]}>{shopsError}</Text>
+                <TouchableOpacity testID="retry-shops-button" style={styles.findShopsBtn} onPress={fetchNearbyShops}>
+                  <Text style={styles.findShopsBtnText}>Try Again</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            {shops.length > 0 && (
+              <View style={styles.card}>
+                <Text style={styles.cardLabel}>NEARBY AUTO REPAIR SHOPS</Text>
+                {shops.map((shop: any, i: number) => (
+                  <TouchableOpacity key={i} testID={`shop-${i}`} style={styles.shopItem}
+                    onPress={() => openUrl(`https://www.google.com/maps/place/?q=place_id:${shop.place_id}`)}>
+                    <View style={styles.shopLeft}>
+                      <MaterialCommunityIcons name="store" size={20} color="#A3A3A3" />
+                    </View>
+                    <View style={styles.shopInfo}>
+                      <Text style={styles.shopName}>{shop.name}</Text>
+                      <Text style={styles.shopAddress}>{shop.address}</Text>
+                      <View style={styles.shopMeta}>
+                        <MaterialCommunityIcons name="star" size={12} color="#F59E0B" />
+                        <Text style={styles.shopRating}>{shop.rating || 'N/A'}</Text>
+                        <Text style={styles.shopReviews}>({shop.total_ratings || 0})</Text>
+                        {shop.open_now !== null && shop.open_now !== undefined && (
+                          <Text style={[styles.shopOpen, { color: shop.open_now ? '#22C55E' : '#EF4444' }]}>
+                            {shop.open_now ? 'Open' : 'Closed'}
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                    <MaterialCommunityIcons name="chevron-right" size={20} color="#737373" />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+        )}
         <View style={styles.bottomSpacer} />
       </ScrollView>
     </SafeAreaView>
@@ -350,4 +436,15 @@ const styles = StyleSheet.create({
   videoTitle: { fontSize: 14, fontWeight: '500', color: '#E5E5E5' },
   videoDesc: { fontSize: 12, color: '#737373', marginTop: 2 },
   bottomSpacer: { height: 40 },
+  findShopsBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#FFFFFF', borderRadius: 4, paddingVertical: 12, marginTop: 12 },
+  findShopsBtnText: { fontSize: 14, fontWeight: '600', color: '#000' },
+  shopItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#1F1F1F' },
+  shopLeft: { width: 36, height: 36, borderRadius: 4, backgroundColor: '#292929', alignItems: 'center', justifyContent: 'center' },
+  shopInfo: { flex: 1 },
+  shopName: { fontSize: 14, fontWeight: '500', color: '#E5E5E5' },
+  shopAddress: { fontSize: 12, color: '#737373', marginTop: 2 },
+  shopMeta: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
+  shopRating: { fontSize: 12, fontWeight: '600', color: '#F59E0B' },
+  shopReviews: { fontSize: 11, color: '#737373' },
+  shopOpen: { fontSize: 11, fontWeight: '600', marginLeft: 8 },
 });

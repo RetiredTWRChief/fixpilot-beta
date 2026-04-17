@@ -6,7 +6,7 @@ from fastapi import FastAPI, APIRouter, HTTPException, Request, Depends
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId
-import os, json, uuid, logging, bcrypt, jwt, requests
+import os, json, uuid, logging, bcrypt, jwt, requests, secrets
 from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel, Field
 from typing import Optional
@@ -108,6 +108,13 @@ class NearbyRequest(BaseModel):
     lng: float
     radius: int = 8000
 
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
 def _vehicle_summary(v):
     parts = [p for p in [v.year, v.make, v.model, v.engine] if p]
     return " ".join(parts) if parts else "Unknown vehicle"
@@ -119,8 +126,9 @@ def _clean_doc(doc):
 
 # --- Affiliate Link Builder ---
 AFFILIATE_CONFIG = {
-    "amazon": {"tag": "", "param": "tag"},
-    "autozone": {"tag": "", "param": ""},
+    "amazon": {"tag": os.environ.get("AMAZON_AFFILIATE_TAG", "fixpilot-20"), "param": "tag"},
+    "walmart": {"tag": os.environ.get("WALMART_AFFILIATE_TAG", ""), "param": ""},
+    "autozone": {"tag": os.environ.get("AUTOZONE_AFFILIATE_TAG", ""), "param": ""},
 }
 
 def build_affiliate_url(base_url: str, store: str = "") -> str:
@@ -250,6 +258,40 @@ async def refresh_token(request: Request):
         raise HTTPException(status_code=401, detail="Refresh token expired")
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+@api_router.post("/auth/forgot-password")
+async def forgot_password(req: ForgotPasswordRequest):
+    email = req.email.lower().strip()
+    user = await db.users.find_one({"email": email})
+    if not user:
+        return {"message": "If that email exists, a reset link has been sent."}
+    token = secrets.token_urlsafe(32)
+    await db.password_reset_tokens.insert_one({
+        "token": token, "user_id": str(user["_id"]), "email": email,
+        "expires_at": datetime.now(timezone.utc) + timedelta(hours=1),
+        "used": False, "created_at": datetime.now(timezone.utc),
+    })
+    logger.info(f"Password reset token for {email}: {token}")
+    return {"message": "If that email exists, a reset link has been sent.", "reset_token": token}
+
+@api_router.post("/auth/reset-password")
+async def reset_password(req: ResetPasswordRequest):
+    if len(req.new_password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+    token_doc = await db.password_reset_tokens.find_one({"token": req.token, "used": False})
+    if not token_doc:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+    expires = token_doc.get("expires_at")
+    if expires and expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+    if expires and datetime.now(timezone.utc) > expires:
+        raise HTTPException(status_code=400, detail="Reset token has expired")
+    await db.users.update_one(
+        {"_id": ObjectId(token_doc["user_id"])},
+        {"$set": {"password_hash": hash_password(req.new_password)}}
+    )
+    await db.password_reset_tokens.update_one({"token": req.token}, {"$set": {"used": True}})
+    return {"message": "Password has been reset successfully"}
 
 # --- Core Routes ---
 @api_router.get("/health")
@@ -390,6 +432,7 @@ async def seed_admin():
 async def create_indexes():
     await db.users.create_index("email", unique=True)
     await db.login_attempts.create_index("identifier")
+    await db.password_reset_tokens.create_index("expires_at", expireAfterSeconds=0)
 
 app.include_router(api_router)
 app.add_middleware(CORSMiddleware, allow_credentials=True, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])

@@ -58,6 +58,10 @@ export default function LoginScreen() {
             <TouchableOpacity testID="go-to-register" style={styles.linkBtn} onPress={() => router.push('/register')}>
               <Text style={styles.linkText}>Don't have an account? <Text style={styles.linkBold}>Create one</Text></Text>
             </TouchableOpacity>
+
+            <TouchableOpacity testID="go-to-forgot" style={styles.forgotBtn} onPress={() => router.push('/forgot-password')}>
+              <Text style={styles.forgotText}>Forgot password?</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -84,4 +88,6 @@ const styles = StyleSheet.create({
   linkBtn: { alignItems: 'center', marginTop: 20 },
   linkText: { fontSize: 14, color: '#737373' },
   linkBold: { color: '#E5E5E5', fontWeight: '600' },
+  forgotBtn: { alignItems: 'center', marginTop: 14 },
+  forgotText: { fontSize: 13, color: '#3B82F6' },
 });
