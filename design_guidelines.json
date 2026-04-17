@@ -1,0 +1,142 @@
+{
+  "project_name": "FixPilot Mobile Web App",
+  "theme": "Dark",
+  "archetype": "Swiss & High-Contrast (Tactical & Minimalist)",
+  "core_design_principles": [
+    "Sleek, professional, and technical 'steel' aesthetic.",
+    "Zero animations or cartoon-like graphics (strictly functional and minimalist).",
+    "High-contrast readability tailored for mobile/touch interaction.",
+    "Precision-focused 'Control Room' dense grids for diagnostic information."
+  ],
+  "colors": {
+    "background": {
+      "primary": "#0A0A0A",
+      "secondary": "#141414",
+      "tertiary": "#1F1F1F"
+    },
+    "surface": {
+      "card": "#141414",
+      "input": "#0A0A0A",
+      "active": "#292929"
+    },
+    "border": {
+      "default": "#333333",
+      "steel": "#4D4D4D",
+      "focus": "#808080"
+    },
+    "text": {
+      "primary": "#FFFFFF",
+      "secondary": "#A3A3A3",
+      "muted": "#737373",
+      "inverse": "#000000"
+    },
+    "accent": {
+      "primary": "#E5E5E5",
+      "success": "#22C55E",
+      "warning": "#F59E0B",
+      "danger": "#EF4444",
+      "info": "#3B82F6"
+    }
+  },
+  "typography": {
+    "font_family": {
+      "heading": "Outfit, sans-serif",
+      "body": "IBM Plex Sans, sans-serif",
+      "mono": "JetBrains Mono, monospace"
+    },
+    "hierarchy": {
+      "h1": "text-4xl font-light tracking-tighter",
+      "h2": "text-2xl font-medium tracking-tight",
+      "h3": "text-xl font-medium",
+      "h4": "text-lg font-medium",
+      "body": "text-base font-normal leading-relaxed",
+      "label": "text-xs font-bold uppercase tracking-[0.2em]"
+    },
+    "rules": [
+      "No generic 'Inter' for headings. Use Outfit for a sleek, technical feel.",
+      "Never use pure center alignment for standard content; prioritize left-alignment for scannability.",
+      "Use mono font (JetBrains Mono) for diagnostic codes, part numbers, and VIN inputs."
+    ]
+  },
+  "spacing_and_layout": {
+    "system": "Generous Spacing System on outer bounds, dense internally.",
+    "containers": "Use p-4 to p-6 for mobile outer padding.",
+    "grid": {
+      "type": "Control Room Grid",
+      "mobile": "grid-cols-1 gap-4",
+      "tablet": "grid-cols-2 gap-4"
+    },
+    "rules": [
+      "Mobile-first design: Components must span full width on small screens.",
+      "Avoid large, airy gaps inside diagnostic cards. Information should be dense and scannable like a professional mechanic's tool."
+    ]
+  },
+  "surfaces": {
+    "style": "Technical Grid Borders",
+    "rules": [
+      "Flat backgrounds only. No gradients, no glassmorphism.",
+      "Use 1px solid borders (border-border/40) to define sections.",
+      "Border radius: max 4px (rounded-sm) for a sharp, 'steel' tool aesthetic.",
+      "Shadows: None. Rely on contrast and borders for depth."
+    ]
+  },
+  "interactions": {
+    "rules": [
+      "NO ANIMATIONS. Disable standard hover/click transitions where possible. Changes should be instantaneous and sharp.",
+      "Active/Pressed states should invert colors or significantly darken the background.",
+      "Focus states MUST have a sharp 2px solid border (ring-0 ring-offset-0 border-[#808080])."
+    ]
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-white text-black hover:bg-gray-200 rounded-sm font-medium border-none",
+      "secondary": "bg-[#141414] text-white border border-[#333333] hover:bg-[#292929] rounded-sm",
+      "icon": "text-[#A3A3A3] hover:text-white"
+    },
+    "inputs": {
+      "style": "bg-[#0A0A0A] border border-[#333333] text-white rounded-sm placeholder-[#737373] focus:border-[#808080] focus:ring-0"
+    },
+    "cards": {
+      "style": "bg-[#141414] border border-[#333333] rounded-sm p-4"
+    },
+    "chat_bubble": {
+      "ai": "bg-[#1F1F1F] border border-[#333333] rounded-sm p-4 text-white",
+      "user": "bg-[#292929] border border-[#4D4D4D] rounded-sm p-4 text-white"
+    }
+  },
+  "icons": {
+    "library": "@phosphor-icons/react",
+    "style": "Use sharp, 'steel-look' regular or duotone icons (e.g., wrench, gear, car, list-checks) to maintain the technical automotive feel."
+  },
+  "testing_guidelines": {
+    "rules": [
+      "ALL interactive and key informational elements MUST include a `data-testid` attribute.",
+      "Use kebab-case and role-based naming (e.g., `data-testid=\"vehicle-input-form\"`, `data-testid=\"diagnosis-submit-button\"`)."
+    ]
+  },
+  "image_urls": [
+    {
+      "category": "hero_vehicle",
+      "url": "https://images.unsplash.com/photo-1761486554787-89b2b4eb64ac?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTJ8MHwxfHNlYXJjaHwyfHxtb2Rlcm4lMjBjYXIlMjBlbmdpbmUlMjBkYXJrfGVufDB8fHx8MTc3NjQ0MzE0Nnww&ixlib=rb-4.1.0&q=85",
+      "description": "Sleek black BMW sedan, ideal for the vehicle profile or onboarding background."
+    },
+    {
+      "category": "parts_background",
+      "url": "https://images.unsplash.com/photo-1769641241077-fa1528ac2068?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1OTV8MHwxfHNlYXJjaHwxfHxjYXIlMjBwYXJ0cyUyMGRhcmt8ZW58MHx8fHwxNzc2NDQzMTQ2fDA&ixlib=rb-4.1.0&q=85",
+      "description": "Dark car emblem and fuel door, great for the parts recommendation section."
+    },
+    {
+      "category": "mechanic_shop",
+      "url": "https://images.unsplash.com/photo-1578935570956-4326d9c62ebc?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzV8MHwxfHNlYXJjaHwzfHxtZWNoYW5pYyUyMHNob3AlMjBkYXJrfGVufDB8fHx8MTc3NjQ0MzEzNHww&ixlib=rb-4.1.0&q=85",
+      "description": "Dark mechanic shop scene for the nearby mechanics integration."
+    }
+  ],
+  "instructions_to_main_agent": [
+    "This is a mobile-first React Native Expo / Web App hybrid. Ensure all interactive areas have a minimum touch target size of 44x44px.",
+    "Strictly adhere to the NO ANIMATIONS rule. Do not use Framer Motion. Do not apply transition-all in Tailwind.",
+    "Do NOT use glassmorphism. Stick to solid colors (Obsidian, Gunmetal) and 1px borders to achieve the requested steel look.",
+    "For the AI Diagnosis chat, display information in dense, structured data blocks (bento-style) rather than generic chat bubbles where possible.",
+    "Implement vendor parts links (AutoZone, Amazon) as sharp, rectangular action buttons with clear vendor logos/icons.",
+    "Add `data-testid` to all interactive elements for robust testing."
+  ]
+}
