@@ -9,6 +9,7 @@ export default function TabLayout() {
       <Tabs.Screen name="diagnose" options={{ title: 'Diagnose', tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="wrench-outline" size={size} color={color} /> }} />
       <Tabs.Screen name="garage" options={{ title: 'Garage', tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="car-multiple" size={size} color={color} /> }} />
       <Tabs.Screen name="history" options={{ title: 'History', tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="history" size={size} color={color} /> }} />
+      <Tabs.Screen name="scanner" options={{ title: 'Scanner', tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="bluetooth-connect" size={size} color={color} /> }} />
     </Tabs>
   );
 }

@@ -6,13 +6,24 @@ from fastapi import FastAPI, APIRouter, HTTPException, Request, Depends
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId
-import os, json, uuid, logging, bcrypt, jwt, requests, secrets
+import os, json, uuid, logging, bcrypt, jwt, requests, secrets, asyncio
 from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel, Field
 from typing import Optional
 
 from repair_library import REPAIR_LIBRARY, find_repair_match
 from emergentintegrations.llm.chat import LlmChat, UserMessage
+
+try:
+    import resend
+    RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
+    if RESEND_API_KEY:
+        resend.api_key = RESEND_API_KEY
+    SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
+    HAS_RESEND = bool(RESEND_API_KEY)
+except ImportError:
+    HAS_RESEND = False
+    SENDER_EMAIL = ''
 
 # Config
 mongo_url = os.environ['MONGO_URL']
@@ -114,6 +125,9 @@ class ForgotPasswordRequest(BaseModel):
 class ResetPasswordRequest(BaseModel):
     token: str
     new_password: str
+
+class PushTokenRequest(BaseModel):
+    push_token: str
 
 def _vehicle_summary(v):
     parts = [p for p in [v.year, v.make, v.model, v.engine] if p]
@@ -271,7 +285,26 @@ async def forgot_password(req: ForgotPasswordRequest):
         "expires_at": datetime.now(timezone.utc) + timedelta(hours=1),
         "used": False, "created_at": datetime.now(timezone.utc),
     })
-    logger.info(f"Password reset token for {email}: {token}")
+    # Send email via Resend if configured
+    if HAS_RESEND:
+        try:
+            html = f"""<div style="font-family:sans-serif;max-width:500px;margin:auto;padding:20px;background:#0A0A0A;color:#fff;">
+            <h2 style="color:#E5E5E5;">FixPilot Password Reset</h2>
+            <p style="color:#A3A3A3;">Use this code to reset your password:</p>
+            <div style="background:#141414;border:1px solid #333;border-radius:4px;padding:16px;margin:16px 0;text-align:center;">
+            <code style="font-size:18px;color:#fff;letter-spacing:2px;">{token}</code>
+            </div>
+            <p style="color:#737373;font-size:12px;">This code expires in 1 hour. If you didn't request this, ignore this email.</p>
+            </div>"""
+            await asyncio.to_thread(resend.Emails.send, {
+                "from": SENDER_EMAIL, "to": [email],
+                "subject": "FixPilot - Password Reset Code", "html": html,
+            })
+            logger.info(f"Password reset email sent to {email}")
+        except Exception as e:
+            logger.error(f"Failed to send reset email: {e}")
+    else:
+        logger.info(f"Password reset token for {email}: {token} (Resend not configured - add RESEND_API_KEY)")
     return {"message": "If that email exists, a reset link has been sent.", "reset_token": token}
 
 @api_router.post("/auth/reset-password")
@@ -298,6 +331,25 @@ async def reset_password(req: ResetPasswordRequest):
 async def health():
     return {"status": "ok", "service": "fixpilot-backend", "timestamp": datetime.now(timezone.utc).isoformat()}
 
+# --- Push Notification ---
+async def send_push_notification(push_token: str, title: str, body: str, data: dict = None):
+    if not push_token or not push_token.startswith("ExponentPushToken"):
+        return
+    try:
+        payload = {"to": push_token, "title": title, "body": body, "sound": "default"}
+        if data:
+            payload["data"] = data
+        resp = requests.post("https://exp.host/--/api/v2/push/send", json=payload,
+                             headers={"Content-Type": "application/json"}, timeout=10)
+        logger.info(f"Push notification sent: {resp.status_code}")
+    except Exception as e:
+        logger.error(f"Push notification error: {e}")
+
+@api_router.post("/push-token")
+async def register_push_token(req: PushTokenRequest, user=Depends(get_current_user)):
+    await db.users.update_one({"_id": ObjectId(user["_id"])}, {"$set": {"push_token": req.push_token}})
+    return {"status": "registered"}
+
 @api_router.post("/diagnose")
 async def diagnose(req: DiagnoseRequest, request: Request):
     user = await get_optional_user(request)
@@ -314,6 +366,14 @@ async def diagnose(req: DiagnoseRequest, request: Request):
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.diagnoses.insert_one({**result, "_id": diag_id})
+    # Send push notification if user has a registered token
+    if user and user.get("push_token"):
+        diag_title = ai_result.get("title", "Diagnosis") if ai_result else "Diagnosis"
+        await send_push_notification(
+            user["push_token"], "Diagnosis Complete",
+            f"{diag_title} - Tap to view your full report",
+            {"type": "diagnosis", "id": diag_id}
+        )
     return result
 
 @api_router.post("/chat")
