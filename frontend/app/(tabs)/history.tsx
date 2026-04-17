@@ -5,18 +5,20 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useAuth } from '../auth-context';
 
 const API = process.env.EXPO_PUBLIC_BACKEND_URL;
 
 export default function HistoryScreen() {
   const router = useRouter();
+  const { authHeaders } = useAuth();
   const [diagnoses, setDiagnoses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchHistory = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/api/history`);
+      const res = await fetch(`${API}/api/history`, { headers: authHeaders() });
       if (res.ok) {
         const data = await res.json();
         setDiagnoses(data);

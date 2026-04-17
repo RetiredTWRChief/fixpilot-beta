@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useAuth } from '../auth-context';
 
 const API = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -18,6 +19,7 @@ type Message = {
 
 export default function DiagnoseScreen() {
   const router = useRouter();
+  const { authHeaders } = useAuth();
   const scrollRef = useRef<ScrollView>(null);
   const [year, setYear] = useState('');
   const [make, setMake] = useState('');
@@ -41,7 +43,7 @@ export default function DiagnoseScreen() {
     try {
       const res = await fetch(`${API}/api/chat`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({
           session_id: sessionId,
           vehicle: { year, make, model, engine: '' },
@@ -75,7 +77,7 @@ export default function DiagnoseScreen() {
       setLoading(true);
       const res = await fetch(`${API}/api/diagnose`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({
           vehicle: { year, make, model, engine: '' },
           issue: match.title || '',
