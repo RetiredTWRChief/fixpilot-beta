@@ -15,9 +15,10 @@ AI-powered vehicle mechanic assistant mobile app migrated from Base44/ChatGPT to
 ### Authentication
 - JWT-based email/password registration and login
 - Bearer token auth (React Native compatible)
-- Admin account seeding on startup
+- Admin account auto-seeding on startup
 - Brute force protection (5 attempts = 15 min lockout)
 - Token refresh support
+- **Password reset / forgot password flow** with secure tokens
 
 ### Vehicle Diagnosis (17 Repair Library Entries)
 1. Radiator leak
@@ -44,19 +45,25 @@ AI-powered vehicle mechanic assistant mobile app migrated from Base44/ChatGPT to
 - Repair match suggestions inline
 
 ### Garage (Personal Vehicle Management)
-- Add/view/delete vehicles
-- Nickname support
+- Add/view/delete vehicles with nicknames
 - Auth-protected (user-specific)
 
 ### Google Maps Nearby Mechanics
 - GPS-based location (expo-location)
 - Google Places API integration
-- Returns top 10 nearby auto repair shops
+- Returns top 10 nearby auto repair shops with ratings, address, open/closed status
+- **Shops tab on Results screen** with "Find Nearby Shops" button
+- Opens shop in Google Maps on tap
+
+### Affiliate Link Monetization
+- Amazon tag configured: `fixpilot-20`
+- Structure ready for Walmart, AutoZone affiliate IDs
+- All repair entries include multi-vendor links (Amazon, AutoZone, O'Reilly, RockAuto, Walmart, Advance Auto)
+- UTM-ready link structure
 
 ### Results & Reports
-- Tabbed results: Overview, DIY, Parts, Videos
-- Tools/parts with vendor links (Amazon, AutoZone, O'Reilly, RockAuto, etc.)
-- Affiliate link structure ready for monetization
+- 5 tabbed results: Overview, DIY, Parts, Videos, **Shops**
+- Tools/parts with vendor links
 - YouTube instruction video links
 - DIY vs Mechanic cost comparison
 
@@ -71,15 +78,17 @@ AI-powered vehicle mechanic assistant mobile app migrated from Base44/ChatGPT to
 | POST | /api/auth/login | No | Login |
 | GET | /api/auth/me | Yes | Get user |
 | POST | /api/auth/refresh | No | Refresh token |
+| POST | /api/auth/forgot-password | No | Request reset token |
+| POST | /api/auth/reset-password | No | Reset password |
 | POST | /api/diagnose | Optional | AI diagnosis |
 | POST | /api/chat | Optional | AI chat |
 | GET | /api/chat/{id} | No | Get chat |
 | GET | /api/history | Optional | User history |
 | GET | /api/history/{id} | No | Get diagnosis |
 | DELETE | /api/history/{id} | No | Delete |
-| GET | /api/repair-library | No | All entries |
+| GET | /api/repair-library | No | All 17 entries |
 | POST | /api/vehicles | Yes | Save vehicle |
 | GET | /api/vehicles | Yes | User vehicles |
 | DELETE | /api/vehicles/{id} | Yes | Delete vehicle |
-| POST | /api/nearby-shops | No | Find shops |
+| POST | /api/nearby-shops | No | Find shops (Google Places) |
 | GET | /api/health | No | Health check |
