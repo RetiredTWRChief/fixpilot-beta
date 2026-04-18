@@ -5,6 +5,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../lib/auth-context';
 
 const API = process.env.EXPO_PUBLIC_BACKEND_URL;
@@ -12,6 +13,7 @@ const API = process.env.EXPO_PUBLIC_BACKEND_URL;
 export default function HistoryScreen() {
   const router = useRouter();
   const { authHeaders } = useAuth();
+  const { t } = useTranslation();
   const [diagnoses, setDiagnoses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -108,15 +110,15 @@ export default function HistoryScreen() {
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
         <MaterialCommunityIcons name="history" size={22} color="#E5E5E5" />
-        <Text style={styles.headerTitle}>Diagnosis History</Text>
+        <Text style={styles.headerTitle}>{t('diagnosisHistory')}</Text>
         <Text style={styles.headerCount}>{diagnoses.length}</Text>
       </View>
 
       {diagnoses.length === 0 ? (
         <View style={styles.center}>
           <MaterialCommunityIcons name="clipboard-text-outline" size={48} color="#333333" />
-          <Text style={styles.emptyTitle}>No diagnoses yet</Text>
-          <Text style={styles.emptyText}>Your diagnosis history will appear here</Text>
+          <Text style={styles.emptyTitle}>{t('noDiagnosesYet')}</Text>
+          <Text style={styles.emptyText}>{t('historyPrompt')}</Text>
         </View>
       ) : (
         <FlatList

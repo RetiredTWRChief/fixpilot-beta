@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../../lib/auth-context';
+import { useTranslation } from 'react-i18next';
 
 const API = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -20,6 +21,7 @@ type Message = {
 export default function DiagnoseScreen() {
   const router = useRouter();
   const { authHeaders } = useAuth();
+  const { t, i18n } = useTranslation();
   const scrollRef = useRef<ScrollView>(null);
   const [year, setYear] = useState('');
   const [make, setMake] = useState('');
@@ -47,7 +49,7 @@ export default function DiagnoseScreen() {
         body: JSON.stringify({
           session_id: sessionId,
           vehicle: { year, make, model, engine: '' },
-          message: text,
+          message: text, language: i18n.language,
         }),
       });
       const data = await res.json();
@@ -80,7 +82,7 @@ export default function DiagnoseScreen() {
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({
           vehicle: { year, make, model, engine: '' },
-          issue: match.title || '',
+          issue: match.title || '', language: i18n.language,
           verified_diagnosis: match.key || '',
         }),
       });
@@ -108,12 +110,12 @@ export default function DiagnoseScreen() {
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <MaterialCommunityIcons name="chat-processing-outline" size={22} color="#E5E5E5" />
-            <Text style={styles.headerTitle}>AI Diagnosis</Text>
+            <Text style={styles.headerTitle}>{t('aiDiagnosis')}</Text>
           </View>
           {messages.length > 0 && (
             <TouchableOpacity testID="new-chat-button" onPress={startNew} style={styles.newBtn}>
               <MaterialCommunityIcons name="plus" size={18} color="#A3A3A3" />
-              <Text style={styles.newBtnText}>New</Text>
+              <Text style={styles.newBtnText}>{t('newChat')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -132,8 +134,8 @@ export default function DiagnoseScreen() {
           {messages.length === 0 && (
             <View style={styles.emptyState}>
               <MaterialCommunityIcons name="engine" size={48} color="#333333" />
-              <Text style={styles.emptyTitle}>Describe your vehicle issue</Text>
-              <Text style={styles.emptyText}>Tell me what symptoms you're experiencing and I'll help diagnose the problem.</Text>
+              <Text style={styles.emptyTitle}>{t('describeVehicleIssue')}</Text>
+              <Text style={styles.emptyText}>{t('describeSymptoms')}</Text>
             </View>
           )}
 
@@ -158,7 +160,7 @@ export default function DiagnoseScreen() {
                       <Text style={styles.matchTitle}>{msg.repair_match.title}</Text>
                     </View>
                     <Text style={styles.matchDiff}>Difficulty: {msg.repair_match.difficulty}</Text>
-                    <Text style={styles.matchAction}>Tap for full diagnosis report</Text>
+                    <Text style={styles.matchAction}>{t('tapFullReport')}</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -168,7 +170,7 @@ export default function DiagnoseScreen() {
           {loading && (
             <View style={styles.loadingRow}>
               <ActivityIndicator color="#A3A3A3" size="small" />
-              <Text style={styles.loadingText}>Analyzing...</Text>
+              <Text style={styles.loadingText}>{t('analyzing')}</Text>
             </View>
           )}
         </ScrollView>
@@ -178,7 +180,7 @@ export default function DiagnoseScreen() {
           <TextInput
             testID="chat-message-input"
             style={styles.chatInput}
-            placeholder="Describe the issue..."
+            placeholder={t('describeIssue')}
             placeholderTextColor="#737373"
             value={message}
             onChangeText={setMessage}

@@ -3,10 +3,12 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingVi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 const API = process.env.EXPO_PUBLIC_BACKEND_URL;
 
 export default function ForgotPasswordScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [token, setToken] = useState('');
@@ -62,7 +64,7 @@ export default function ForgotPasswordScreen() {
         <View style={styles.container}>
           <TouchableOpacity testID="forgot-back" style={styles.backRow} onPress={() => router.back()}>
             <MaterialCommunityIcons name="arrow-left" size={20} color="#A3A3A3" />
-            <Text style={styles.backText}>Back to login</Text>
+            <Text style={styles.backText}>{t('backToLogin')}</Text>
           </TouchableOpacity>
 
           <View style={styles.header}>
@@ -81,13 +83,13 @@ export default function ForgotPasswordScreen() {
 
           {step === 'email' && (
             <View>
-              <Text style={styles.desc}>Enter your email and we'll send you a reset code.</Text>
+              <Text style={styles.desc}>{t('enterEmail')}</Text>
               <Text style={styles.label}>EMAIL</Text>
               <TextInput testID="forgot-email" style={styles.input} placeholder="you@email.com" placeholderTextColor="#737373"
                 value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
               <TouchableOpacity testID="forgot-submit" style={[styles.button, loading && styles.buttonDisabled]}
                 onPress={handleForgot} disabled={loading}>
-                {loading ? <ActivityIndicator color="#000" size="small" /> : <Text style={styles.buttonText}>Send Reset Code</Text>}
+                {loading ? <ActivityIndicator color="#000" size="small" /> : <Text style={styles.buttonText}>{t('sendResetCode')}</Text>}
               </TouchableOpacity>
             </View>
           )}
@@ -95,15 +97,15 @@ export default function ForgotPasswordScreen() {
           {step === 'reset' && (
             <View>
               <Text style={styles.desc}>{message}</Text>
-              <Text style={styles.label}>RESET TOKEN</Text>
-              <TextInput testID="reset-token" style={styles.input} placeholder="Paste reset token" placeholderTextColor="#737373"
+              <Text style={styles.label}>{t('resetToken')}</Text>
+              <TextInput testID="reset-token" style={styles.input} placeholder={t('pasteToken')} placeholderTextColor="#737373"
                 value={token} onChangeText={setToken} />
-              <Text style={styles.label}>NEW PASSWORD</Text>
+              <Text style={styles.label}>{t('newPassword')}</Text>
               <TextInput testID="reset-new-password" style={styles.input} placeholder="Min 6 characters" placeholderTextColor="#737373"
                 value={newPassword} onChangeText={setNewPassword} secureTextEntry />
               <TouchableOpacity testID="reset-submit" style={[styles.button, loading && styles.buttonDisabled]}
                 onPress={handleReset} disabled={loading}>
-                {loading ? <ActivityIndicator color="#000" size="small" /> : <Text style={styles.buttonText}>Reset Password</Text>}
+                {loading ? <ActivityIndicator color="#000" size="small" /> : <Text style={styles.buttonText}>{t('resetPassword')}</Text>}
               </TouchableOpacity>
             </View>
           )}
@@ -112,10 +114,10 @@ export default function ForgotPasswordScreen() {
             <View>
               <View style={styles.successBox}>
                 <MaterialCommunityIcons name="check-circle-outline" size={20} color="#22C55E" />
-                <Text style={styles.successText}>Password has been reset successfully!</Text>
+                <Text style={styles.successText}>{t('passwordResetSuccess')}</Text>
               </View>
               <TouchableOpacity testID="back-to-login" style={styles.button} onPress={() => router.replace('/login')}>
-                <Text style={styles.buttonText}>Back to Sign In</Text>
+                <Text style={styles.buttonText}>{t('backToSignIn')}</Text>
               </TouchableOpacity>
             </View>
           )}

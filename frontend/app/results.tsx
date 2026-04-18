@@ -6,11 +6,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import * as Location from 'expo-location';
 
 const API = process.env.EXPO_PUBLIC_BACKEND_URL;
 
 export default function ResultsScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [data, setData] = useState<any>(null);
@@ -43,9 +45,9 @@ export default function ResultsScreen() {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.center}>
-          <Text style={styles.errorText}>Diagnosis not found</Text>
+          <Text style={styles.errorText}>{t('diagnosisNotFound')}</Text>
           <TouchableOpacity testID="go-back-button" style={styles.backBtn} onPress={() => router.back()}>
-            <Text style={styles.backBtnText}>Go Back</Text>
+            <Text style={styles.backBtnText}>{t('goBack')}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -68,11 +70,11 @@ export default function ResultsScreen() {
   };
 
   const tabs = [
-    { key: 'overview', label: 'Overview', icon: 'information-outline' as const },
-    { key: 'diy', label: 'DIY', icon: 'tools' as const },
-    { key: 'parts', label: 'Parts', icon: 'cog-outline' as const },
-    { key: 'videos', label: 'Videos', icon: 'play-circle-outline' as const },
-    { key: 'shops', label: 'Shops', icon: 'map-marker-outline' as const },
+    { key: 'overview', label: t('overview'), icon: 'information-outline' as const },
+    { key: 'diy', label: t('diy'), icon: 'tools' as const },
+    { key: 'parts', label: t('parts'), icon: 'cog-outline' as const },
+    { key: 'videos', label: t('videos'), icon: 'play-circle-outline' as const },
+    { key: 'shops', label: t('shops'), icon: 'map-marker-outline' as const },
   ];
 
   const fetchNearbyShops = async () => {
@@ -104,11 +106,11 @@ export default function ResultsScreen() {
       {/* AI Analysis */}
       {ai && (
         <View style={styles.card}>
-          <Text style={styles.cardLabel}>AI ANALYSIS</Text>
+          <Text style={styles.cardLabel}>{t('aiAnalysis')}</Text>
           <Text style={styles.cardText}>{ai.summary || ai.recommended_approach || JSON.stringify(ai)}</Text>
           {ai.likely_causes && ai.likely_causes.length > 0 && (
             <View style={styles.listSection}>
-              <Text style={styles.listTitle}>Likely Causes</Text>
+              <Text style={styles.listTitle}>{t('likelyCauses')}</Text>
               {ai.likely_causes.map((c: string, i: number) => (
                 <View key={i} style={styles.listItem}>
                   <Text style={styles.bullet}>-</Text>
@@ -129,7 +131,7 @@ export default function ResultsScreen() {
       {/* Inspection Steps */}
       {(match?.inspection_steps || ai?.inspection_steps) && (
         <View style={styles.card}>
-          <Text style={styles.cardLabel}>INSPECTION STEPS</Text>
+          <Text style={styles.cardLabel}>{t('inspectionSteps')}</Text>
           {(match?.inspection_steps || ai?.inspection_steps || []).map((step: string, i: number) => (
             <View key={i} style={styles.stepItem}>
               <View style={styles.stepNum}>
@@ -144,7 +146,7 @@ export default function ResultsScreen() {
       {/* Inspection Tools */}
       {match?.inspection_tools && (
         <View style={styles.card}>
-          <Text style={styles.cardLabel}>INSPECTION TOOLS</Text>
+          <Text style={styles.cardLabel}>{t('inspectionTools')}</Text>
           {match.inspection_tools.map((tool: any, i: number) => (
             <TouchableOpacity key={i} testID={`inspection-tool-${i}`} style={styles.toolItem} onPress={() => openUrl(tool.url)}>
               <MaterialCommunityIcons name="open-in-new" size={14} color="#3B82F6" />
@@ -160,13 +162,13 @@ export default function ResultsScreen() {
       {/* Cost Comparison */}
       <View style={styles.costRow}>
         <View style={[styles.costCard, styles.costCardDiy]}>
-          <Text style={styles.costLabel}>DIY COST</Text>
+          <Text style={styles.costLabel}>{t('diyCost')}</Text>
           <Text style={styles.costAmount}>
             ${match?.diy?.estimated_cost?.min || ai?.estimated_diy_cost?.min || '?'} - ${match?.diy?.estimated_cost?.max || ai?.estimated_diy_cost?.max || '?'}
           </Text>
         </View>
         <View style={[styles.costCard, styles.costCardMech]}>
-          <Text style={styles.costLabel}>MECHANIC COST</Text>
+          <Text style={styles.costLabel}>{t('mechanicCost')}</Text>
           <Text style={styles.costAmount}>
             ${match?.mechanic?.estimated_cost?.min || ai?.estimated_mechanic_cost?.min || '?'} - ${match?.mechanic?.estimated_cost?.max || ai?.estimated_mechanic_cost?.max || '?'}
           </Text>
@@ -179,7 +181,7 @@ export default function ResultsScreen() {
     <View>
       {match?.diy?.tools && (
         <View style={styles.card}>
-          <Text style={styles.cardLabel}>TOOLS NEEDED</Text>
+          <Text style={styles.cardLabel}>{t('toolsNeeded')}</Text>
           {match.diy.tools.map((tool: any, i: number) => (
             <TouchableOpacity key={i} testID={`diy-tool-${i}`} style={styles.toolItem} onPress={() => openUrl(tool.url)}>
               <MaterialCommunityIcons name="wrench" size={16} color="#A3A3A3" />
@@ -194,7 +196,7 @@ export default function ResultsScreen() {
       )}
       {!match?.diy && ai && (
         <View style={styles.card}>
-          <Text style={styles.cardLabel}>AI REPAIR GUIDANCE</Text>
+          <Text style={styles.cardLabel}>{t('aiRepairGuidance')}</Text>
           <Text style={styles.cardText}>{ai.recommended_approach || 'Consult a professional mechanic for this repair.'}</Text>
         </View>
       )}
@@ -205,7 +207,7 @@ export default function ResultsScreen() {
     <View>
       {match?.diy?.parts && (
         <View style={styles.card}>
-          <Text style={styles.cardLabel}>RECOMMENDED PARTS</Text>
+          <Text style={styles.cardLabel}>{t('recommendedParts')}</Text>
           {match.diy.parts.map((part: any, i: number) => (
             <View key={i} style={styles.partItem}>
               <View style={styles.partHeader}>
@@ -244,7 +246,7 @@ export default function ResultsScreen() {
       <View>
         {videos.length > 0 ? (
           <View style={styles.card}>
-            <Text style={styles.cardLabel}>INSTRUCTION VIDEOS</Text>
+            <Text style={styles.cardLabel}>{t('instructionVideos')}</Text>
             {videos.map((v: any, i: number) => (
               <TouchableOpacity key={i} testID={`video-${i}`} style={styles.videoItem} onPress={() => openUrl(v.url)}>
                 <MaterialCommunityIcons name="youtube" size={24} color="#EF4444" />
@@ -273,7 +275,7 @@ export default function ResultsScreen() {
         <TouchableOpacity testID="results-back-button" onPress={() => router.back()} style={styles.topBackBtn}>
           <MaterialCommunityIcons name="arrow-left" size={22} color="#E5E5E5" />
         </TouchableOpacity>
-        <Text style={styles.topTitle} numberOfLines={1}>Diagnosis Report</Text>
+        <Text style={styles.topTitle} numberOfLines={1}>{t('diagnosisReport')}</Text>
         <View style={styles.topBackBtn} />
       </View>
 
@@ -317,11 +319,11 @@ export default function ResultsScreen() {
           <View>
             {shops.length === 0 && !shopsLoading && !shopsError && (
               <View style={styles.card}>
-                <Text style={styles.cardLabel}>NEARBY MECHANICS</Text>
+                <Text style={styles.cardLabel}>{t('nearbyMechanics')}</Text>
                 <Text style={styles.cardText}>Find auto repair shops near your location.</Text>
                 <TouchableOpacity testID="find-shops-button" style={styles.findShopsBtn} onPress={fetchNearbyShops}>
                   <MaterialCommunityIcons name="map-marker-radius" size={18} color="#000" />
-                  <Text style={styles.findShopsBtnText}>Find Nearby Shops</Text>
+                  <Text style={styles.findShopsBtnText}>{t('findNearbyShops')}</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -333,7 +335,7 @@ export default function ResultsScreen() {
             )}
             {shopsError && !shopsLoading && (
               <View style={styles.card}>
-                <Text style={styles.cardLabel}>NEARBY MECHANICS</Text>
+                <Text style={styles.cardLabel}>{t('nearbyMechanics')}</Text>
                 <Text style={[styles.cardText, { color: '#F59E0B' }]}>{shopsError}</Text>
                 <TouchableOpacity testID="retry-shops-button" style={styles.findShopsBtn} onPress={fetchNearbyShops}>
                   <Text style={styles.findShopsBtnText}>Try Again</Text>
@@ -342,7 +344,7 @@ export default function ResultsScreen() {
             )}
             {shops.length > 0 && (
               <View style={styles.card}>
-                <Text style={styles.cardLabel}>NEARBY AUTO REPAIR SHOPS</Text>
+                <Text style={styles.cardLabel}>{t('nearbyAutoRepair')}</Text>
                 {shops.map((shop: any, i: number) => (
                   <TouchableOpacity key={i} testID={`shop-${i}`} style={styles.shopItem}
                     onPress={() => openUrl(`https://www.google.com/maps/place/?q=place_id:${shop.place_id}`)}>

@@ -2,8 +2,11 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import { getLocales } from 'expo-localization';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { I18nManager } from 'react-native';
 
 const LANG_KEY = 'fixpilot_language';
+
+const RTL_LANGUAGES = ['ar'];
 
 export const LANGUAGES = [
   { code: 'en', name: 'English', flag: 'EN' },
@@ -385,12 +388,20 @@ export async function initI18n() {
     interpolation: { escapeValue: false },
     compatibilityJSON: 'v4',
   });
+  const isRTL = RTL_LANGUAGES.includes(lang);
+  I18nManager.allowRTL(isRTL);
+  I18nManager.forceRTL(isRTL);
   return lang;
 }
 
 export async function changeLanguage(code: string) {
   await i18n.changeLanguage(code);
   await AsyncStorage.setItem(LANG_KEY, code);
+  const isRTL = RTL_LANGUAGES.includes(code);
+  if (I18nManager.isRTL !== isRTL) {
+    I18nManager.allowRTL(isRTL);
+    I18nManager.forceRTL(isRTL);
+  }
 }
 
 export default i18n;

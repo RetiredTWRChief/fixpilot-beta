@@ -6,12 +6,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../lib/auth-context';
 
 const API = process.env.EXPO_PUBLIC_BACKEND_URL;
 
 export default function GarageScreen() {
   const { authHeaders } = useAuth();
+  const { t } = useTranslation();
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -83,7 +85,7 @@ export default function GarageScreen() {
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
         <MaterialCommunityIcons name="car-multiple" size={22} color="#E5E5E5" />
-        <Text style={styles.headerTitle}>My Garage</Text>
+        <Text style={styles.headerTitle}>{t('myGarage')}</Text>
         <TouchableOpacity testID="add-vehicle-button" style={styles.addBtn} onPress={() => setShowForm(!showForm)}>
           <MaterialCommunityIcons name={showForm ? "close" : "plus"} size={18} color="#A3A3A3" />
         </TouchableOpacity>
@@ -91,7 +93,7 @@ export default function GarageScreen() {
 
       {showForm && (
         <View style={styles.formCard}>
-          <Text style={styles.formLabel}>ADD VEHICLE</Text>
+          <Text style={styles.formLabel}>{t('addVehicle')}</Text>
           <View style={styles.formRow}>
             <TextInput testID="garage-year" style={[styles.input, styles.inputSmall]} placeholder="Year" placeholderTextColor="#737373" value={year} onChangeText={setYear} keyboardType="number-pad" maxLength={4} />
             <TextInput testID="garage-make" style={[styles.input, styles.inputSmall]} placeholder="Make" placeholderTextColor="#737373" value={make} onChangeText={setMake} />
@@ -100,9 +102,9 @@ export default function GarageScreen() {
             <TextInput testID="garage-model" style={[styles.input, styles.inputSmall]} placeholder="Model" placeholderTextColor="#737373" value={model} onChangeText={setModel} />
             <TextInput testID="garage-engine" style={[styles.input, styles.inputSmall]} placeholder="Engine" placeholderTextColor="#737373" value={engine} onChangeText={setEngine} />
           </View>
-          <TextInput testID="garage-nickname" style={styles.input} placeholder="Nickname (optional)" placeholderTextColor="#737373" value={nickname} onChangeText={setNickname} />
+          <TextInput testID="garage-nickname" style={styles.input} placeholder={t('nicknameOpt')} placeholderTextColor="#737373" value={nickname} onChangeText={setNickname} />
           <TouchableOpacity testID="garage-save" style={[styles.saveBtn, saving && styles.saveBtnDisabled]} onPress={saveVehicle} disabled={saving}>
-            {saving ? <ActivityIndicator color="#000" size="small" /> : <Text style={styles.saveBtnText}>Save Vehicle</Text>}
+            {saving ? <ActivityIndicator color="#000" size="small" /> : <Text style={styles.saveBtnText}>{t('saveVehicle')}</Text>}
           </TouchableOpacity>
         </View>
       )}
@@ -110,8 +112,8 @@ export default function GarageScreen() {
       {vehicles.length === 0 && !showForm ? (
         <View style={styles.center}>
           <MaterialCommunityIcons name="car-off" size={48} color="#333333" />
-          <Text style={styles.emptyTitle}>No vehicles saved</Text>
-          <Text style={styles.emptyText}>Add your vehicles to quickly start diagnoses</Text>
+          <Text style={styles.emptyTitle}>{t('noVehiclesSaved')}</Text>
+          <Text style={styles.emptyText}>{t('addVehiclesPrompt')}</Text>
         </View>
       ) : (
         <FlatList data={vehicles} renderItem={renderVehicle} keyExtractor={item => item.id}

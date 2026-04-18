@@ -97,11 +97,13 @@ class DiagnoseRequest(BaseModel):
     vehicle: VehicleInfo
     issue: str
     verified_diagnosis: str = ""
+    language: str = "en"
 
 class ChatRequest(BaseModel):
     session_id: str = ""
     vehicle: VehicleInfo
     message: str
+    language: str = "en"
 
 class VehicleSave(BaseModel):
     year: str
@@ -163,9 +165,11 @@ def build_affiliate_url(base_url: str, store: str = "") -> str:
     return base_url
 
 # --- AI Diagnosis ---
-async def ai_diagnose(vehicle: VehicleInfo, issue: str, repair_match=None):
+async def ai_diagnose(vehicle: VehicleInfo, issue: str, repair_match=None, language="en"):
+    LANG_NAMES = {"en":"English","es":"Spanish","fr":"French","de":"German","pt":"Portuguese","zh":"Chinese","ja":"Japanese","ko":"Korean","it":"Italian","ar":"Arabic"}
+    lang_name = LANG_NAMES.get(language, "English")
     vehicle_str = _vehicle_summary(vehicle)
-    system_msg = """You are FixPilot, an expert AI vehicle mechanic assistant. Given a vehicle and issue, respond with JSON:
+    system_msg = f"""You are FixPilot, an expert AI vehicle mechanic assistant. Respond in {lang_name}. Given a vehicle and issue, respond with JSON:
 {"title":"Brief title","summary":"2-3 sentence overview","likely_causes":["cause1"],"inspection_steps":["step1"],"recommended_approach":"What to do","difficulty":"Easy/Moderate/Advanced","safety_notes":"Warnings","estimated_diy_cost":{"min":0,"max":0},"estimated_mechanic_cost":{"min":0,"max":0}}
 Respond with valid JSON only."""
     context = f"Vehicle: {vehicle_str}\nIssue: {issue}"
@@ -190,9 +194,11 @@ Respond with valid JSON only."""
         logger.error(f"AI diagnosis error: {e}")
         return None
 
-async def ai_chat(vehicle: VehicleInfo, message: str, history: list):
+async def ai_chat(vehicle: VehicleInfo, message: str, history: list, language="en"):
+    LANG_NAMES = {"en":"English","es":"Spanish","fr":"French","de":"German","pt":"Portuguese","zh":"Chinese","ja":"Japanese","ko":"Korean","it":"Italian","ar":"Arabic"}
+    lang_name = LANG_NAMES.get(language, "English")
     vehicle_str = _vehicle_summary(vehicle)
-    system_msg = f"""You are FixPilot, an expert AI mechanic helping diagnose issues with a {vehicle_str}. Be professional, clear, and safety-conscious. Keep responses concise but thorough."""
+    system_msg = f"""You are FixPilot, an expert AI mechanic helping diagnose issues with a {vehicle_str}. Respond in {lang_name}. Be professional, clear, and safety-conscious. Keep responses concise but thorough."""
     try:
         chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=f"chat-{uuid.uuid4()}", system_message=system_msg)
         chat.with_model("openai", "gpt-5.2")
@@ -370,7 +376,7 @@ async def diagnose(req: DiagnoseRequest, request: Request):
                 raise HTTPException(status_code=403, detail="Free tier limit reached. Upgrade to FixPilot Pro for unlimited diagnoses.")
     diag_id = str(uuid.uuid4())
     repair_match = find_repair_match(issue=req.issue, verified_diagnosis=req.verified_diagnosis)
-    ai_result = await ai_diagnose(req.vehicle, req.issue, repair_match)
+    ai_result = await ai_diagnose(req.vehicle, req.issue, repair_match, language=req.language)
     result = {
         "id": diag_id, "vehicle": req.vehicle.dict(), "vehicle_summary": _vehicle_summary(req.vehicle),
         "issue": req.issue, "verified_diagnosis": req.verified_diagnosis,
@@ -397,7 +403,7 @@ async def chat_endpoint(req: ChatRequest, request: Request):
     session_id = req.session_id or str(uuid.uuid4())
     existing = await db.chat_sessions.find_one({"session_id": session_id}, {"_id": 0})
     history = existing.get("messages", []) if existing else []
-    reply = await ai_chat(req.vehicle, req.message, history)
+    reply = await ai_chat(req.vehicle, req.message, history, language=req.language)
     history.append({"role": "user", "content": req.message, "timestamp": datetime.now(timezone.utc).isoformat()})
     history.append({"role": "assistant", "content": reply, "timestamp": datetime.now(timezone.utc).isoformat()})
     repair_match = find_repair_match(issue=req.message)

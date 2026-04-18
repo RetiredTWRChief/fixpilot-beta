@@ -3,11 +3,13 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../lib/auth-context';
 
 const API = process.env.EXPO_PUBLIC_BACKEND_URL;
 
 export default function SubscribeScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { authHeaders, user } = useAuth();
   const { session_id, cancelled } = useLocalSearchParams<{ session_id?: string; cancelled?: string }>();
@@ -76,7 +78,7 @@ export default function SubscribeScreen() {
         <TouchableOpacity testID="subscribe-back" onPress={() => router.back()} style={styles.backBtn}>
           <MaterialCommunityIcons name="arrow-left" size={22} color="#E5E5E5" />
         </TouchableOpacity>
-        <Text style={styles.topTitle}>FixPilot Pro</Text>
+        <Text style={styles.topTitle}>{t('fixpilotPro')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -84,26 +86,26 @@ export default function SubscribeScreen() {
         {paymentResult === 'success' && (
           <View style={styles.successBox}>
             <MaterialCommunityIcons name="check-circle" size={24} color="#22C55E" />
-            <Text style={styles.successText}>Welcome to FixPilot Pro! You now have unlimited access.</Text>
+            <Text style={styles.successText}>{t('welcomePro')}</Text>
           </View>
         )}
         {paymentResult === 'cancelled' && (
           <View style={styles.cancelBox}>
             <MaterialCommunityIcons name="close-circle-outline" size={20} color="#F59E0B" />
-            <Text style={styles.cancelText}>Payment was cancelled. You can try again anytime.</Text>
+            <Text style={styles.cancelText}>{t('paymentCancelled')}</Text>
           </View>
         )}
         {polling && (
           <View style={styles.pollingBox}>
             <ActivityIndicator color="#3B82F6" size="small" />
-            <Text style={styles.pollingText}>Verifying payment...</Text>
+            <Text style={styles.pollingText}>{t('paymentVerifying')}</Text>
           </View>
         )}
 
         {/* Current Status */}
         {subStatus && (
           <View style={styles.statusCard}>
-            <Text style={styles.statusLabel}>CURRENT PLAN</Text>
+            <Text style={styles.statusLabel}>{t('currentPlan')}</Text>
             <Text style={styles.statusPlan}>{subStatus.plan}</Text>
             {subStatus.status === 'free' && (
               <Text style={styles.statusDetail}>{subStatus.free_remaining} free diagnosis remaining</Text>
@@ -117,7 +119,7 @@ export default function SubscribeScreen() {
         {/* Pro Plan Card */}
         <View style={styles.proCard}>
           <View style={styles.proBadge}><Text style={styles.proBadgeText}>PRO</Text></View>
-          <Text style={styles.proTitle}>FixPilot Pro</Text>
+          <Text style={styles.proTitle}>{t('fixpilotPro')}</Text>
           <Text style={styles.proPrice}>$9.99<Text style={styles.proPeriod}> / month</Text></Text>
 
           <View style={styles.featureList}>
@@ -142,20 +144,20 @@ export default function SubscribeScreen() {
             <TouchableOpacity testID="subscribe-button" style={[styles.subscribeBtn, loading && styles.subscribeBtnDisabled]}
               onPress={handleSubscribe} disabled={loading}>
               {loading ? <ActivityIndicator color="#000" size="small" /> :
-                <Text style={styles.subscribeBtnText}>{user ? 'Subscribe — $9.99/mo' : 'Create Account & Subscribe — $9.99/mo'}</Text>}
+                <Text style={styles.subscribeBtnText}>{user ? t('subscribeBtnText') : t('createAccountSubscribe')}</Text>}
             </TouchableOpacity>
           )}
           {subStatus?.status === 'pro' && (
             <View style={styles.activeBox}>
               <MaterialCommunityIcons name="check-decagram" size={20} color="#22C55E" />
-              <Text style={styles.activeText}>You're a Pro member!</Text>
+              <Text style={styles.activeText}>{t('proMember')}</Text>
             </View>
           )}
         </View>
 
         {/* Free Plan Comparison */}
         <View style={styles.freeCard}>
-          <Text style={styles.freeTitle}>Free Tier</Text>
+          <Text style={styles.freeTitle}>{t('freeTier')}</Text>
           <View style={styles.featureList}>
             {[
               { icon: 'numeric-1-circle-outline', text: '1 free diagnosis', color: '#A3A3A3' },

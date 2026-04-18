@@ -3,9 +3,11 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingVi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../lib/auth-context';
 
 export default function LoginScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { login } = useAuth();
   const [email, setEmail] = useState('');
@@ -29,11 +31,11 @@ export default function LoginScreen() {
           <View style={styles.header}>
             <MaterialCommunityIcons name="wrench" size={36} color="#E5E5E5" />
             <Text style={styles.logo}>FixPilot</Text>
-            <Text style={styles.subtitle}>AI Mechanic Assistant</Text>
+            <Text style={styles.subtitle}>{t('tagline')}</Text>
           </View>
 
           <View style={styles.form}>
-            <Text style={styles.formTitle}>Sign In</Text>
+            <Text style={styles.formTitle}>{t('signIn')}</Text>
 
             {error ? (
               <View style={styles.errorBox}>
@@ -42,25 +44,25 @@ export default function LoginScreen() {
               </View>
             ) : null}
 
-            <Text style={styles.label}>EMAIL</Text>
+            <Text style={styles.label}>{t('email')}</Text>
             <TextInput testID="login-email" style={styles.input} placeholder="you@email.com" placeholderTextColor="#737373"
               value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
 
-            <Text style={styles.label}>PASSWORD</Text>
-            <TextInput testID="login-password" style={styles.input} placeholder="Enter password" placeholderTextColor="#737373"
+            <Text style={styles.label}>{t('password')}</Text>
+            <TextInput testID="login-password" style={styles.input} placeholder={t('enterPassword')} placeholderTextColor="#737373"
               value={password} onChangeText={setPassword} secureTextEntry />
 
             <TouchableOpacity testID="login-submit" style={[styles.button, loading && styles.buttonDisabled]}
               onPress={handleLogin} disabled={loading}>
-              {loading ? <ActivityIndicator color="#000" size="small" /> : <Text style={styles.buttonText}>Sign In</Text>}
+              {loading ? <ActivityIndicator color="#000" size="small" /> : <Text style={styles.buttonText}>{t('signIn')}</Text>}
             </TouchableOpacity>
 
             <TouchableOpacity testID="go-to-register" style={styles.linkBtn} onPress={() => router.push('/register')}>
-              <Text style={styles.linkText}>Don't have an account? <Text style={styles.linkBold}>Create one</Text></Text>
+              <Text style={styles.linkText}>Don't have an account? <Text style={styles.linkBold}>{t('createOne')}</Text></Text>
             </TouchableOpacity>
 
             <TouchableOpacity testID="go-to-forgot" style={styles.forgotBtn} onPress={() => router.push('/forgot-password')}>
-              <Text style={styles.forgotText}>Forgot password?</Text>
+              <Text style={styles.forgotText}>{t('forgotPassword')}</Text>
             </TouchableOpacity>
           </View>
         </View>

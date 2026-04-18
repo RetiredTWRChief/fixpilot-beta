@@ -79,7 +79,7 @@ export default function HomeScreen() {
       if (token) Object.assign(headers, authHeaders());
       const res = await fetch(`${API}/api/diagnose`, {
         method: 'POST', headers,
-        body: JSON.stringify({ vehicle: { year, make, model, engine }, issue: issue.trim() }),
+        body: JSON.stringify({ vehicle: { year, make, model, engine }, issue: issue.trim(), language: i18n.language }),
       });
       const data = await res.json();
       if (res.status === 403) {

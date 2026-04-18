@@ -3,9 +3,11 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingVi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../lib/auth-context';
 
 export default function RegisterScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { register } = useAuth();
   const [name, setName] = useState('');
@@ -34,7 +36,7 @@ export default function RegisterScreen() {
           </View>
 
           <View style={styles.form}>
-            <Text style={styles.formTitle}>Create Account</Text>
+            <Text style={styles.formTitle}>{t('createAccount')}</Text>
 
             {error ? (
               <View style={styles.errorBox}>
@@ -43,25 +45,25 @@ export default function RegisterScreen() {
               </View>
             ) : null}
 
-            <Text style={styles.label}>NAME</Text>
-            <TextInput testID="register-name" style={styles.input} placeholder="Your name" placeholderTextColor="#737373"
+            <Text style={styles.label}>{t('name')}</Text>
+            <TextInput testID="register-name" style={styles.input} placeholder={t('yourName')} placeholderTextColor="#737373"
               value={name} onChangeText={setName} />
 
-            <Text style={styles.label}>EMAIL</Text>
+            <Text style={styles.label}>{t('email')}</Text>
             <TextInput testID="register-email" style={styles.input} placeholder="you@email.com" placeholderTextColor="#737373"
               value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
 
-            <Text style={styles.label}>PASSWORD</Text>
-            <TextInput testID="register-password" style={styles.input} placeholder="Min 6 characters" placeholderTextColor="#737373"
+            <Text style={styles.label}>{t('password')}</Text>
+            <TextInput testID="register-password" style={styles.input} placeholder={t('minChars')} placeholderTextColor="#737373"
               value={password} onChangeText={setPassword} secureTextEntry />
 
             <TouchableOpacity testID="register-submit" style={[styles.button, loading && styles.buttonDisabled]}
               onPress={handleRegister} disabled={loading}>
-              {loading ? <ActivityIndicator color="#000" size="small" /> : <Text style={styles.buttonText}>Create Account</Text>}
+              {loading ? <ActivityIndicator color="#000" size="small" /> : <Text style={styles.buttonText}>{t('createAccount')}</Text>}
             </TouchableOpacity>
 
             <TouchableOpacity testID="go-to-login" style={styles.linkBtn} onPress={() => router.push('/login')}>
-              <Text style={styles.linkText}>Already have an account? <Text style={styles.linkBold}>Sign in</Text></Text>
+              <Text style={styles.linkText}>Already have an account? <Text style={styles.linkBold}>{t('signInLink')}</Text></Text>
             </TouchableOpacity>
           </View>
         </View>

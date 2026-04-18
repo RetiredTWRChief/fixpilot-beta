@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 const OBD2_PIDS: Record<string, { name: string; unit: string; icon: string; parse: (a: number, b: number) => number }> = {
   '010C': { name: 'Engine RPM', unit: 'RPM', icon: 'engine', parse: (a, b) => Math.round(((a * 256) + b) / 4) },
@@ -19,6 +20,7 @@ const OBD2_PIDS: Record<string, { name: string; unit: string; icon: string; pars
 type ScannerState = 'idle' | 'scanning' | 'connected' | 'reading' | 'demo';
 
 export default function ScannerScreen() {
+  const { t } = useTranslation();
   const [state, setState] = useState<ScannerState>('idle');
   const [devices, setDevices] = useState<any[]>([]);
   const [liveData, setLiveData] = useState<Record<string, number>>({});
@@ -79,7 +81,7 @@ export default function ScannerScreen() {
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
         <MaterialCommunityIcons name="bluetooth-connect" size={22} color="#E5E5E5" />
-        <Text style={styles.headerTitle}>OBD2 Scanner</Text>
+        <Text style={styles.headerTitle}>{t('obd2Scanner')}</Text>
         {state === 'demo' && (
           <View style={styles.demoBadge}><Text style={styles.demoBadgeText}>DEMO</Text></View>
         )}
@@ -89,7 +91,7 @@ export default function ScannerScreen() {
         {/* Connection Controls */}
         {(state === 'idle' || state === 'scanning') && (
           <View style={styles.card}>
-            <Text style={styles.cardLabel}>CONNECT TO OBD2 ADAPTER</Text>
+            <Text style={styles.cardLabel}>{t('connectObd2')}</Text>
             <Text style={styles.cardDesc}>
               {isWeb
                 ? 'Bluetooth is not available on web. Use Demo Mode to preview the scanner interface, or open the app on a physical device.'
@@ -103,13 +105,13 @@ export default function ScannerScreen() {
                 ) : (
                   <View style={styles.btnInner}>
                     <MaterialCommunityIcons name="bluetooth-audio" size={18} color="#000" />
-                    <Text style={styles.scanBtnText}>Scan Devices</Text>
+                    <Text style={styles.scanBtnText}>{t('scanDevices')}</Text>
                   </View>
                 )}
               </TouchableOpacity>
               <TouchableOpacity testID="demo-mode-button" style={styles.demoBtn} onPress={startDemo}>
                 <MaterialCommunityIcons name="play-outline" size={18} color="#E5E5E5" />
-                <Text style={styles.demoBtnText}>Demo Mode</Text>
+                <Text style={styles.demoBtnText}>{t('demoMode')}</Text>
               </TouchableOpacity>
             </View>
 
@@ -122,7 +124,7 @@ export default function ScannerScreen() {
 
             {devices.length > 0 && (
               <View style={styles.deviceList}>
-                <Text style={styles.deviceListLabel}>FOUND DEVICES</Text>
+                <Text style={styles.deviceListLabel}>{t('foundDevices')}</Text>
                 {devices.map(d => (
                   <View key={d.id} style={styles.deviceItem}>
                     <MaterialCommunityIcons name="bluetooth" size={18} color="#3B82F6" />
@@ -139,7 +141,7 @@ export default function ScannerScreen() {
         {(state === 'demo' || state === 'reading' || state === 'connected') && (
           <View>
             <View style={styles.liveHeader}>
-              <Text style={styles.liveTitle}>LIVE DATA</Text>
+              <Text style={styles.liveTitle}>{t('liveData')}</Text>
               <TouchableOpacity testID="stop-scanner" style={styles.stopBtn} onPress={stopDemo}>
                 <MaterialCommunityIcons name="stop" size={16} color="#EF4444" />
                 <Text style={styles.stopBtnText}>Stop</Text>
@@ -167,7 +169,7 @@ export default function ScannerScreen() {
               <View style={styles.card}>
                 <View style={styles.dtcHeader}>
                   <MaterialCommunityIcons name="alert-circle" size={18} color="#EF4444" />
-                  <Text style={styles.dtcTitle}>DIAGNOSTIC TROUBLE CODES</Text>
+                  <Text style={styles.dtcTitle}>{t('dtcCodes')}</Text>
                 </View>
                 {dtcCodes.map((code, i) => (
                   <View key={i} style={styles.dtcItem}>
@@ -185,7 +187,7 @@ export default function ScannerScreen() {
 
         {/* Info Card */}
         <View style={styles.card}>
-          <Text style={styles.cardLabel}>HOW IT WORKS</Text>
+          <Text style={styles.cardLabel}>{t('howItWorks')}</Text>
           <View style={styles.stepList}>
             <View style={styles.stepItem}>
               <View style={styles.stepNum}><Text style={styles.stepNumText}>1</Text></View>
