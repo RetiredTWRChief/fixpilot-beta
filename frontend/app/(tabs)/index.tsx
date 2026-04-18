@@ -8,6 +8,8 @@ import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../../lib/auth-context';
 import { LOGO_BASE64 } from '../../lib/logo-base64';
+import { LANGUAGES, changeLanguage } from '../../lib/i18n';
+import { useTranslation } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API = process.env.EXPO_PUBLIC_BACKEND_URL;
@@ -27,6 +29,8 @@ export default function HomeScreen() {
   const [subStatus, setSubStatus] = useState<any>(null);
   const [paywallError, setPaywallError] = useState('');
   const [localUsed, setLocalUsed] = useState(0);
+  const [showLangPicker, setShowLangPicker] = useState(false);
+  const { t, i18n } = useTranslation();
 
   const fetchRecent = useCallback(async () => {
     try {
@@ -107,16 +111,36 @@ export default function HomeScreen() {
             <View style={s.heroTop}>
               <Image source={{ uri: LOGO_BASE64 }} style={s.logo} resizeMode="contain" />
               <View style={s.heroTextCol}>
-                <Text style={s.heroTitle}>FixPilot</Text>
-                <Text style={s.heroTagline}>Your AI Mechanic</Text>
-                <Text style={s.heroSub}>Diagnose <Text style={s.redDot}>·</Text> Repair <Text style={s.redDot}>·</Text> Save Money</Text>
+                <Text style={s.heroTitle}>{t('appName')}</Text>
+                <Text style={s.heroTagline}>{t('tagline')}</Text>
+                <Text style={s.heroSub}>{t('taglineSub')}</Text>
               </View>
+              <TouchableOpacity testID="lang-picker-btn" style={s.langBtn} onPress={() => setShowLangPicker(!showLangPicker)}>
+                <MaterialCommunityIcons name="translate" size={18} color="#E62020" />
+                <Text style={s.langBtnText}>{i18n.language.toUpperCase()}</Text>
+              </TouchableOpacity>
               {user ? (
                 <TouchableOpacity testID="logout-button" onPress={logout} style={s.logoutBtn}>
                   <MaterialCommunityIcons name="logout" size={18} color="#777" />
                 </TouchableOpacity>
               ) : null}
             </View>
+
+            {/* Language Picker Dropdown */}
+            {showLangPicker && (
+              <View style={s.langDropdown}>
+                <Text style={s.langDropdownLabel}>{t('selectLanguage')}</Text>
+                <View style={s.langGrid}>
+                  {LANGUAGES.map(lang => (
+                    <TouchableOpacity key={lang.code} testID={`lang-${lang.code}`}
+                      style={[s.langItem, i18n.language === lang.code && s.langItemActive]}
+                      onPress={() => { changeLanguage(lang.code); setShowLangPicker(false); }}>
+                      <Text style={[s.langItemText, i18n.language === lang.code && s.langItemTextActive]}>{lang.name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
 
             {/* Status Bar */}
             <View style={s.statusBar}>
@@ -125,11 +149,11 @@ export default function HomeScreen() {
               ) : (
                 <TouchableOpacity testID="upgrade-button" style={s.upgradeBtn} onPress={() => router.push('/subscribe')}>
                   <MaterialCommunityIcons name="crown" size={14} color="#E62020" />
-                  <Text style={s.upgradeBtnText}>Upgrade to Pro</Text>
+                  <Text style={s.upgradeBtnText}>{t('upgradePro')}</Text>
                 </TouchableOpacity>
               )}
-              {!isPro && <Text style={s.freeCount}>{freeRemaining} free diagnosis left</Text>}
-              {user && <Text style={s.userGreet}>Hi, {user.name}</Text>}
+              {!isPro && <Text style={s.freeCount}>{t('freeDiagLeft', { count: freeRemaining })}</Text>}
+              {user && <Text style={s.userGreet}>{t('hi', { name: user.name })}</Text>}
             </View>
           </View>
 
@@ -137,15 +161,15 @@ export default function HomeScreen() {
           <View style={s.section}>
             <View style={s.sectionHeader}>
               <MaterialCommunityIcons name="car" size={16} color="#E62020" />
-              <Text style={s.sectionLabel}>VEHICLE DETAILS</Text>
+              <Text style={s.sectionLabel}>{t('vehicleDetails')}</Text>
             </View>
             <View style={s.row}>
-              <TextInput testID="input-year" style={s.input} placeholder="Year" placeholderTextColor="#555" value={year} onChangeText={setYear} keyboardType="number-pad" maxLength={4} />
-              <TextInput testID="input-make" style={s.input} placeholder="Make" placeholderTextColor="#555" value={make} onChangeText={setMake} />
+              <TextInput testID="input-year" style={s.input} placeholder={t('year')} placeholderTextColor="#555" value={year} onChangeText={setYear} keyboardType="number-pad" maxLength={4} />
+              <TextInput testID="input-make" style={s.input} placeholder={t('make')} placeholderTextColor="#555" value={make} onChangeText={setMake} />
             </View>
             <View style={s.row}>
-              <TextInput testID="input-model" style={s.input} placeholder="Model" placeholderTextColor="#555" value={model} onChangeText={setModel} />
-              <TextInput testID="input-engine" style={s.input} placeholder="Engine (opt)" placeholderTextColor="#555" value={engine} onChangeText={setEngine} />
+              <TextInput testID="input-model" style={s.input} placeholder={t('model')} placeholderTextColor="#555" value={model} onChangeText={setModel} />
+              <TextInput testID="input-engine" style={s.input} placeholder={t('engineOpt')} placeholderTextColor="#555" value={engine} onChangeText={setEngine} />
             </View>
           </View>
 
@@ -153,10 +177,10 @@ export default function HomeScreen() {
           <View style={s.section}>
             <View style={s.sectionHeader}>
               <MaterialCommunityIcons name="alert-circle-outline" size={16} color="#E62020" />
-              <Text style={s.sectionLabel}>WHAT'S THE PROBLEM?</Text>
+              <Text style={s.sectionLabel}>{t('whatsProblem')}</Text>
             </View>
             <TextInput testID="input-issue" style={[s.input, s.textArea]}
-              placeholder="e.g. My car is overheating and I smell coolant near the front..."
+              placeholder={t('issuePlaceholder')}
               placeholderTextColor="#555" value={issue} onChangeText={setIssue}
               multiline numberOfLines={4} textAlignVertical="top" />
           </View>
@@ -166,8 +190,8 @@ export default function HomeScreen() {
             <TouchableOpacity testID="paywall-upgrade" style={s.paywallCard} onPress={() => { setPaywallError(''); router.push('/subscribe'); }}>
               <MaterialCommunityIcons name="lock" size={22} color="#E62020" />
               <View style={s.paywallInfo}>
-                <Text style={s.paywallTitle}>Free limit reached</Text>
-                <Text style={s.paywallText}>Upgrade to FixPilot Pro for unlimited diagnoses — $9.99/mo</Text>
+                <Text style={s.paywallTitle}>{t('freeLimitReached')}</Text>
+                <Text style={s.paywallText}>{t('upgradeMsg')}</Text>
               </View>
               <MaterialCommunityIcons name="chevron-right" size={22} color="#E62020" />
             </TouchableOpacity>
@@ -180,7 +204,7 @@ export default function HomeScreen() {
             {loading ? <ActivityIndicator color="#FFF" size="small" /> :
               <View style={s.ctaInner}>
                 <MaterialCommunityIcons name="magnify" size={22} color="#FFF" />
-                <Text style={s.ctaText}>Get Diagnosis</Text>
+                <Text style={s.ctaText}>{t('getDiagnosis')}</Text>
               </View>}
           </TouchableOpacity>
 
@@ -189,7 +213,7 @@ export default function HomeScreen() {
             <View style={s.section}>
               <View style={s.sectionHeader}>
                 <MaterialCommunityIcons name="clock-outline" size={16} color="#E62020" />
-                <Text style={s.sectionLabel}>RECENT DIAGNOSES</Text>
+                <Text style={s.sectionLabel}>{t('recentDiagnoses')}</Text>
               </View>
               {recentDiagnoses.map((d: any) => (
                 <TouchableOpacity testID={`recent-${d.id}`} key={d.id} style={s.recentCard}
@@ -229,6 +253,15 @@ const s = StyleSheet.create({
   heroSub: { fontSize: 11, color: '#777', marginTop: 2 },
   redDot: { color: '#E62020', fontWeight: '700' },
   logoutBtn: { padding: 8, borderWidth: 1, borderColor: '#333', borderRadius: 6 },
+  langBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: '#E62020', borderRadius: 6 },
+  langBtnText: { fontSize: 11, fontWeight: '700', color: '#E62020' },
+  langDropdown: { backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#333', borderRadius: 8, padding: 14, marginTop: 12 },
+  langDropdownLabel: { fontSize: 10, fontWeight: '700', color: '#777', letterSpacing: 1.5, marginBottom: 10 },
+  langGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  langItem: { paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: '#333', borderRadius: 6 },
+  langItemActive: { borderColor: '#E62020', backgroundColor: '#2A1010' },
+  langItemText: { fontSize: 13, color: '#999' },
+  langItemTextActive: { color: '#E62020', fontWeight: '700' },
   // Status Bar
   statusBar: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14, flexWrap: 'wrap' },
   proBadge: { backgroundColor: '#E62020', borderRadius: 4, paddingHorizontal: 10, paddingVertical: 3 },

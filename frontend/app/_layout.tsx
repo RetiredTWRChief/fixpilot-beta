@@ -1,8 +1,9 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, StyleSheet, ActivityIndicator, Text, Platform } from 'react-native';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AuthProvider, useAuth } from '../lib/auth-context';
+import { initI18n } from '../lib/i18n';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 
@@ -83,6 +84,20 @@ function RootNavigator() {
 }
 
 export default function RootLayout() {
+  const [i18nReady, setI18nReady] = useState(false);
+
+  useEffect(() => {
+    initI18n().then(() => setI18nReady(true));
+  }, []);
+
+  if (!i18nReady) {
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator color="#E62020" size="large" />
+      </View>
+    );
+  }
+
   return (
     <AuthProvider>
       <StatusBar style="light" />
