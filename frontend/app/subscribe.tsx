@@ -9,7 +9,7 @@ const API = process.env.EXPO_PUBLIC_BACKEND_URL;
 
 export default function SubscribeScreen() {
   const router = useRouter();
-  const { authHeaders } = useAuth();
+  const { authHeaders, user } = useAuth();
   const { session_id, cancelled } = useLocalSearchParams<{ session_id?: string; cancelled?: string }>();
   const [loading, setLoading] = useState(false);
   const [subStatus, setSubStatus] = useState<any>(null);
@@ -49,6 +49,11 @@ export default function SubscribeScreen() {
   };
 
   const handleSubscribe = async () => {
+    if (!user) {
+      // Need to create account first to subscribe
+      router.push('/register');
+      return;
+    }
     setLoading(true);
     try {
       const origin = Platform.OS === 'web' ? window.location.origin : `${API}`;
@@ -137,7 +142,7 @@ export default function SubscribeScreen() {
             <TouchableOpacity testID="subscribe-button" style={[styles.subscribeBtn, loading && styles.subscribeBtnDisabled]}
               onPress={handleSubscribe} disabled={loading}>
               {loading ? <ActivityIndicator color="#000" size="small" /> :
-                <Text style={styles.subscribeBtnText}>Subscribe — $9.99/mo</Text>}
+                <Text style={styles.subscribeBtnText}>{user ? 'Subscribe — $9.99/mo' : 'Create Account & Subscribe — $9.99/mo'}</Text>}
             </TouchableOpacity>
           )}
           {subStatus?.status === 'pro' && (

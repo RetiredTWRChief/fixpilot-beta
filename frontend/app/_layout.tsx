@@ -61,16 +61,6 @@ function RootNavigator() {
   const router = useRouter();
   usePushNotifications();
 
-  useEffect(() => {
-    if (loading) return;
-    const inAuth = segments[0] === 'login' || segments[0] === 'register' || segments[0] === 'forgot-password';
-    if (!user && !inAuth) {
-      router.replace('/login');
-    } else if (user && inAuth) {
-      router.replace('/');
-    }
-  }, [user, loading, segments]);
-
   if (loading) {
     return (
       <View style={styles.loading}>
@@ -82,12 +72,12 @@ function RootNavigator() {
 
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#0A0A0A' } }}>
-      <Stack.Screen name="login" />
-      <Stack.Screen name="register" />
-      <Stack.Screen name="forgot-password" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="results" options={{ animation: 'none' }} />
       <Stack.Screen name="subscribe" options={{ animation: 'none' }} />
+      <Stack.Screen name="login" />
+      <Stack.Screen name="register" />
+      <Stack.Screen name="forgot-password" />
     </Stack>
   );
 }

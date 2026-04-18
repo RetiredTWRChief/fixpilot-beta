@@ -361,7 +361,7 @@ async def register_push_token(req: PushTokenRequest, user=Depends(get_current_us
 @api_router.post("/diagnose")
 async def diagnose(req: DiagnoseRequest, request: Request):
     user = await get_optional_user(request)
-    # Check subscription - free users get limited diagnoses
+    # Only check server-side limit for authenticated users
     if user:
         sub = user.get("subscription_status", "free")
         if sub == "free":

@@ -7,12 +7,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../../lib/auth-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API = process.env.EXPO_PUBLIC_BACKEND_URL;
+const FREE_LIMIT = 1;
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { user, logout, authHeaders } = useAuth();
+  const { user, logout, authHeaders, token } = useAuth();
   const [year, setYear] = useState('');
   const [make, setMake] = useState('');
   const [model, setModel] = useState('');
@@ -23,6 +25,7 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [subStatus, setSubStatus] = useState<any>(null);
   const [paywallError, setPaywallError] = useState('');
+  const [localUsed, setLocalUsed] = useState(0);
 
   const fetchRecent = useCallback(async () => {
     try {
@@ -34,14 +37,23 @@ export default function HomeScreen() {
     } catch (e) {}
   }, [authHeaders]);
 
-  useEffect(() => { fetchRecent(); fetchSubStatus(); }, [fetchRecent]);
+  useEffect(() => { fetchRecent(); fetchSubStatus(); loadLocalUsage(); }, []);
+
+  const loadLocalUsage = async () => {
+    const val = await AsyncStorage.getItem('fixpilot_diag_count');
+    setLocalUsed(val ? parseInt(val, 10) : 0);
+  };
 
   const fetchSubStatus = async () => {
+    if (!token) return;
     try {
       const res = await fetch(`${API}/api/subscription-status`, { headers: authHeaders() });
       if (res.ok) setSubStatus(await res.json());
     } catch (e) {}
   };
+
+  const isPro = subStatus?.status === 'pro';
+  const freeRemaining = isPro ? -1 : Math.max(0, FREE_LIMIT - localUsed);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -51,11 +63,18 @@ export default function HomeScreen() {
 
   const handleDiagnose = async () => {
     if (!issue.trim()) return;
+    // Local free tier check (no auth needed)
+    if (!isPro && freeRemaining <= 0) {
+      setPaywallError('Free limit reached. Upgrade to FixPilot Pro for unlimited diagnoses.');
+      return;
+    }
     setLoading(true);
+    setPaywallError('');
     try {
+      const headers: any = { 'Content-Type': 'application/json' };
+      if (token) Object.assign(headers, authHeaders());
       const res = await fetch(`${API}/api/diagnose`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        method: 'POST', headers,
         body: JSON.stringify({ vehicle: { year, make, model, engine }, issue: issue.trim() }),
       });
       const data = await res.json();
@@ -64,7 +83,13 @@ export default function HomeScreen() {
         setLoading(false);
         return;
       }
-      if (data.id) router.push({ pathname: '/results', params: { id: data.id } });
+      if (data.id) {
+        // Increment local usage
+        const newCount = localUsed + 1;
+        setLocalUsed(newCount);
+        await AsyncStorage.setItem('fixpilot_diag_count', newCount.toString());
+        router.push({ pathname: '/results', params: { id: data.id } });
+      }
     } catch (e) {
       console.error('Diagnosis error:', e);
     } finally {
@@ -86,26 +111,26 @@ export default function HomeScreen() {
                 </View>
                 {user && <Text style={styles.greeting}>Welcome, {user.name}</Text>}
               </View>
-              <TouchableOpacity testID="logout-button" onPress={logout} style={styles.logoutBtn}>
-                <MaterialCommunityIcons name="logout" size={20} color="#737373" />
-              </TouchableOpacity>
+              {user ? (
+                <TouchableOpacity testID="logout-button" onPress={logout} style={styles.logoutBtn}>
+                  <MaterialCommunityIcons name="logout" size={20} color="#737373" />
+                </TouchableOpacity>
+              ) : null}
             </View>
             {/* Subscription Badge */}
-            {subStatus && (
-              <View style={styles.subRow}>
-                {subStatus.status === 'pro' ? (
-                  <View style={styles.proBadge}><Text style={styles.proBadgeText}>PRO</Text></View>
-                ) : (
-                  <TouchableOpacity testID="upgrade-button" style={styles.upgradeBtn} onPress={() => router.push('/subscribe')}>
-                    <MaterialCommunityIcons name="crown" size={14} color="#F59E0B" />
-                    <Text style={styles.upgradeBtnText}>Upgrade to Pro</Text>
-                  </TouchableOpacity>
-                )}
-                {subStatus.status === 'free' && (
-                  <Text style={styles.freeInfo}>{subStatus.free_remaining} free diagnosis left</Text>
-                )}
-              </View>
-            )}
+            <View style={styles.subRow}>
+              {isPro ? (
+                <View style={styles.proBadge}><Text style={styles.proBadgeText}>PRO</Text></View>
+              ) : (
+                <TouchableOpacity testID="upgrade-button" style={styles.upgradeBtn} onPress={() => router.push('/subscribe')}>
+                  <MaterialCommunityIcons name="crown" size={14} color="#F59E0B" />
+                  <Text style={styles.upgradeBtnText}>Upgrade to Pro</Text>
+                </TouchableOpacity>
+              )}
+              {!isPro && (
+                <Text style={styles.freeInfo}>{freeRemaining} free diagnosis left</Text>
+              )}
+            </View>
           </View>
 
           <View style={styles.section}>
