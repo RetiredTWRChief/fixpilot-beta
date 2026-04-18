@@ -87,6 +87,7 @@ function RootNavigator() {
       <Stack.Screen name="forgot-password" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="results" options={{ animation: 'none' }} />
+      <Stack.Screen name="subscribe" options={{ animation: 'none' }} />
     </Stack>
   );
 }

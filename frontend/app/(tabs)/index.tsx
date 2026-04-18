@@ -21,6 +21,8 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(false);
   const [recentDiagnoses, setRecentDiagnoses] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [subStatus, setSubStatus] = useState<any>(null);
+  const [paywallError, setPaywallError] = useState('');
 
   const fetchRecent = useCallback(async () => {
     try {
@@ -32,7 +34,14 @@ export default function HomeScreen() {
     } catch (e) {}
   }, [authHeaders]);
 
-  useEffect(() => { fetchRecent(); }, [fetchRecent]);
+  useEffect(() => { fetchRecent(); fetchSubStatus(); }, [fetchRecent]);
+
+  const fetchSubStatus = async () => {
+    try {
+      const res = await fetch(`${API}/api/subscription-status`, { headers: authHeaders() });
+      if (res.ok) setSubStatus(await res.json());
+    } catch (e) {}
+  };
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -50,6 +59,11 @@ export default function HomeScreen() {
         body: JSON.stringify({ vehicle: { year, make, model, engine }, issue: issue.trim() }),
       });
       const data = await res.json();
+      if (res.status === 403) {
+        setPaywallError(data.detail || 'Upgrade required');
+        setLoading(false);
+        return;
+      }
       if (data.id) router.push({ pathname: '/results', params: { id: data.id } });
     } catch (e) {
       console.error('Diagnosis error:', e);
@@ -76,6 +90,22 @@ export default function HomeScreen() {
                 <MaterialCommunityIcons name="logout" size={20} color="#737373" />
               </TouchableOpacity>
             </View>
+            {/* Subscription Badge */}
+            {subStatus && (
+              <View style={styles.subRow}>
+                {subStatus.status === 'pro' ? (
+                  <View style={styles.proBadge}><Text style={styles.proBadgeText}>PRO</Text></View>
+                ) : (
+                  <TouchableOpacity testID="upgrade-button" style={styles.upgradeBtn} onPress={() => router.push('/subscribe')}>
+                    <MaterialCommunityIcons name="crown" size={14} color="#F59E0B" />
+                    <Text style={styles.upgradeBtnText}>Upgrade to Pro</Text>
+                  </TouchableOpacity>
+                )}
+                {subStatus.status === 'free' && (
+                  <Text style={styles.freeInfo}>{subStatus.free_remaining} free diagnosis left</Text>
+                )}
+              </View>
+            )}
           </View>
 
           <View style={styles.section}>
@@ -104,6 +134,17 @@ export default function HomeScreen() {
               placeholder="e.g. My car is overheating and I smell coolant..."
               placeholderTextColor="#737373" value={issue} onChangeText={setIssue} multiline numberOfLines={4} textAlignVertical="top" />
           </View>
+
+          {paywallError ? (
+            <TouchableOpacity testID="paywall-upgrade" style={styles.paywallCard} onPress={() => { setPaywallError(''); router.push('/subscribe'); }}>
+              <MaterialCommunityIcons name="lock" size={20} color="#F59E0B" />
+              <View style={styles.paywallInfo}>
+                <Text style={styles.paywallTitle}>Free limit reached</Text>
+                <Text style={styles.paywallText}>Upgrade to FixPilot Pro for unlimited diagnoses</Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={20} color="#F59E0B" />
+            </TouchableOpacity>
+          ) : null}
 
           <TouchableOpacity testID="diagnose-button" style={[styles.button, (!issue.trim() || loading) && styles.buttonDisabled]}
             onPress={handleDiagnose} disabled={!issue.trim() || loading} activeOpacity={0.7}>
@@ -147,6 +188,16 @@ const styles = StyleSheet.create({
   logoText: { fontSize: 32, fontWeight: '300', color: '#FFFFFF', letterSpacing: -1 },
   greeting: { fontSize: 13, color: '#A3A3A3', marginTop: 4 },
   logoutBtn: { padding: 8, borderWidth: 1, borderColor: '#333333', borderRadius: 4 },
+  subRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8 },
+  proBadge: { backgroundColor: '#22C55E', borderRadius: 4, paddingHorizontal: 10, paddingVertical: 3 },
+  proBadgeText: { fontSize: 10, fontWeight: '700', color: '#000', letterSpacing: 1 },
+  upgradeBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: '#F59E0B', borderRadius: 4 },
+  upgradeBtnText: { fontSize: 11, fontWeight: '600', color: '#F59E0B' },
+  freeInfo: { fontSize: 12, color: '#737373' },
+  paywallCard: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#1F1F1F', borderWidth: 1, borderColor: '#F59E0B', borderRadius: 4, padding: 14, marginBottom: 12 },
+  paywallInfo: { flex: 1 },
+  paywallTitle: { fontSize: 14, fontWeight: '600', color: '#F59E0B' },
+  paywallText: { fontSize: 12, color: '#A3A3A3', marginTop: 2 },
   section: { marginBottom: 20 },
   sectionLabel: { fontSize: 11, fontWeight: '700', color: '#737373', letterSpacing: 2, marginBottom: 10, textTransform: 'uppercase' },
   row: { flexDirection: 'row', gap: 10, marginBottom: 10 },

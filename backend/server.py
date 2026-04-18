@@ -9,10 +9,11 @@ from bson import ObjectId
 import os, json, uuid, logging, bcrypt, jwt, requests, secrets, asyncio
 from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 
 from repair_library import REPAIR_LIBRARY, find_repair_match
 from emergentintegrations.llm.chat import LlmChat, UserMessage
+from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
 
 try:
     import resend
@@ -24,6 +25,10 @@ try:
 except ImportError:
     HAS_RESEND = False
     SENDER_EMAIL = ''
+
+STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY', 'sk_test_emergent')
+PRO_PRICE = 9.99  # $9.99/month
+FREE_DIAGNOSES_LIMIT = 1
 
 # Config
 mongo_url = os.environ['MONGO_URL']
@@ -128,6 +133,9 @@ class ResetPasswordRequest(BaseModel):
 
 class PushTokenRequest(BaseModel):
     push_token: str
+
+class SubscribeRequest(BaseModel):
+    origin_url: str
 
 def _vehicle_summary(v):
     parts = [p for p in [v.year, v.make, v.model, v.engine] if p]
@@ -353,6 +361,13 @@ async def register_push_token(req: PushTokenRequest, user=Depends(get_current_us
 @api_router.post("/diagnose")
 async def diagnose(req: DiagnoseRequest, request: Request):
     user = await get_optional_user(request)
+    # Check subscription - free users get limited diagnoses
+    if user:
+        sub = user.get("subscription_status", "free")
+        if sub == "free":
+            diag_count = await db.diagnoses.count_documents({"user_id": user["_id"]})
+            if diag_count >= FREE_DIAGNOSES_LIMIT:
+                raise HTTPException(status_code=403, detail="Free tier limit reached. Upgrade to FixPilot Pro for unlimited diagnoses.")
     diag_id = str(uuid.uuid4())
     repair_match = find_repair_match(issue=req.issue, verified_diagnosis=req.verified_diagnosis)
     ai_result = await ai_diagnose(req.vehicle, req.issue, repair_match)
@@ -446,6 +461,91 @@ async def delete_vehicle(vid: str, user=Depends(get_current_user)):
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Vehicle not found")
     return {"status": "deleted"}
+
+# --- Subscription / Stripe ---
+@api_router.post("/subscribe")
+async def create_subscription(req: SubscribeRequest, request: Request, user=Depends(get_current_user)):
+    host_url = str(request.base_url).rstrip('/')
+    webhook_url = f"{host_url}/api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+    success_url = f"{req.origin_url}/subscribe?session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = f"{req.origin_url}/subscribe?cancelled=true"
+    checkout_req = CheckoutSessionRequest(
+        amount=PRO_PRICE, currency="usd",
+        success_url=success_url, cancel_url=cancel_url,
+        metadata={"user_id": user["_id"], "email": user.get("email", ""), "plan": "pro_monthly"}
+    )
+    session = await stripe_checkout.create_checkout_session(checkout_req)
+    await db.payment_transactions.insert_one({
+        "session_id": session.session_id, "user_id": user["_id"], "email": user.get("email", ""),
+        "amount": PRO_PRICE, "currency": "usd", "plan": "pro_monthly",
+        "payment_status": "initiated", "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    return {"url": session.url, "session_id": session.session_id}
+
+@api_router.get("/subscription-status")
+async def subscription_status(user=Depends(get_current_user)):
+    sub = user.get("subscription_status", "free")
+    diag_count = await db.diagnoses.count_documents({"user_id": user["_id"]})
+    free_remaining = max(0, FREE_DIAGNOSES_LIMIT - diag_count) if sub == "free" else -1
+    return {
+        "status": sub, "plan": "FixPilot Pro" if sub == "pro" else "Free",
+        "diagnoses_used": diag_count, "free_remaining": free_remaining,
+        "expires_at": user.get("subscription_expires_at"),
+    }
+
+@api_router.get("/checkout-status/{session_id}")
+async def checkout_status(session_id: str, request: Request):
+    host_url = str(request.base_url).rstrip('/')
+    webhook_url = f"{host_url}/api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+    status = await stripe_checkout.get_checkout_status(session_id)
+    tx = await db.payment_transactions.find_one({"session_id": session_id}, {"_id": 0})
+    if tx and status.payment_status == "paid" and tx.get("payment_status") != "paid":
+        await db.payment_transactions.update_one(
+            {"session_id": session_id},
+            {"$set": {"payment_status": "paid", "status": status.status, "paid_at": datetime.now(timezone.utc).isoformat()}}
+        )
+        user_id = tx.get("user_id")
+        if user_id:
+            await db.users.update_one(
+                {"_id": ObjectId(user_id)},
+                {"$set": {"subscription_status": "pro",
+                           "subscription_expires_at": (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()}}
+            )
+            logger.info(f"User {user_id} upgraded to Pro")
+    elif tx and status.status == "expired" and tx.get("payment_status") != "expired":
+        await db.payment_transactions.update_one({"session_id": session_id}, {"$set": {"payment_status": "expired"}})
+    return {"payment_status": status.payment_status, "status": status.status, "amount_total": status.amount_total}
+
+@api_router.post("/webhook/stripe")
+async def stripe_webhook(request: Request):
+    body = await request.body()
+    sig = request.headers.get("Stripe-Signature", "")
+    host_url = str(request.base_url).rstrip('/')
+    webhook_url = f"{host_url}/api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+    try:
+        event = await stripe_checkout.handle_webhook(body, sig)
+        logger.info(f"Stripe webhook: {event.event_type} session={event.session_id}")
+        if event.payment_status == "paid":
+            tx = await db.payment_transactions.find_one({"session_id": event.session_id}, {"_id": 0})
+            if tx and tx.get("payment_status") != "paid":
+                await db.payment_transactions.update_one(
+                    {"session_id": event.session_id},
+                    {"$set": {"payment_status": "paid", "paid_at": datetime.now(timezone.utc).isoformat()}}
+                )
+                user_id = tx.get("user_id")
+                if user_id:
+                    await db.users.update_one(
+                        {"_id": ObjectId(user_id)},
+                        {"$set": {"subscription_status": "pro",
+                                   "subscription_expires_at": (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()}}
+                    )
+        return {"status": "ok"}
+    except Exception as e:
+        logger.error(f"Stripe webhook error: {e}")
+        return {"status": "error"}
 
 # --- Nearby Shops (Google Places) ---
 @api_router.post("/nearby-shops")
