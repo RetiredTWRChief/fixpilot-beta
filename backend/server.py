@@ -499,12 +499,28 @@ async def checkout_status(session_id: str, request: Request):
     host_url = str(request.base_url).rstrip('/')
     webhook_url = f"{host_url}/api/webhook/stripe"
     stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
-    status = await stripe_checkout.get_checkout_status(session_id)
+    try:
+        status = await stripe_checkout.get_checkout_status(session_id)
+        payment_status = status.payment_status
+        status_val = status.status
+        amount_total = status.amount_total
+    except Exception as e:
+        logger.warning(f"Checkout status library error: {e}, falling back to direct query")
+        import stripe as stripe_lib
+        stripe_lib.api_key = STRIPE_API_KEY
+        try:
+            session = stripe_lib.checkout.Session.retrieve(session_id)
+            payment_status = session.payment_status or "unpaid"
+            status_val = session.status or "unknown"
+            amount_total = session.amount_total or 0
+        except Exception as e2:
+            logger.error(f"Stripe direct query error: {e2}")
+            return {"payment_status": "unknown", "status": "unknown", "amount_total": 0}
     tx = await db.payment_transactions.find_one({"session_id": session_id}, {"_id": 0})
-    if tx and status.payment_status == "paid" and tx.get("payment_status") != "paid":
+    if tx and payment_status == "paid" and tx.get("payment_status") != "paid":
         await db.payment_transactions.update_one(
             {"session_id": session_id},
-            {"$set": {"payment_status": "paid", "status": status.status, "paid_at": datetime.now(timezone.utc).isoformat()}}
+            {"$set": {"payment_status": "paid", "status": status_val, "paid_at": datetime.now(timezone.utc).isoformat()}}
         )
         user_id = tx.get("user_id")
         if user_id:
@@ -514,9 +530,9 @@ async def checkout_status(session_id: str, request: Request):
                            "subscription_expires_at": (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()}}
             )
             logger.info(f"User {user_id} upgraded to Pro")
-    elif tx and status.status == "expired" and tx.get("payment_status") != "expired":
+    elif tx and status_val == "expired" and tx.get("payment_status") != "expired":
         await db.payment_transactions.update_one({"session_id": session_id}, {"$set": {"payment_status": "expired"}})
-    return {"payment_status": status.payment_status, "status": status.status, "amount_total": status.amount_total}
+    return {"payment_status": payment_status, "status": status_val, "amount_total": amount_total}
 
 @api_router.post("/webhook/stripe")
 async def stripe_webhook(request: Request):
