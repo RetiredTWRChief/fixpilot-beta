@@ -1,9 +1,10 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, StyleSheet, ActivityIndicator, Text, Platform } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, Text, Platform, Image } from 'react-native';
 import { useEffect, useRef, useState } from 'react';
 import { AuthProvider, useAuth } from '../lib/auth-context';
 import { initI18n } from '../lib/i18n';
+import { LOGO_BASE64 } from '../lib/logo-base64';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 
@@ -92,8 +93,11 @@ export default function RootLayout() {
 
   if (!i18nReady) {
     return (
-      <View style={styles.loading}>
-        <ActivityIndicator color="#E62020" size="large" />
+      <View style={styles.splash}>
+        <Image source={{ uri: LOGO_BASE64 }} style={styles.splashLogo} resizeMode="contain" />
+        <Text style={styles.splashTitle}>FixPilot</Text>
+        <Text style={styles.splashTagline}>Your AI Mechanic</Text>
+        <ActivityIndicator color="#E62020" size="small" style={styles.splashSpinner} />
       </View>
     );
   }
@@ -107,6 +111,11 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
-  loading: { flex: 1, backgroundColor: '#0A0A0A', alignItems: 'center', justifyContent: 'center' },
-  loadingText: { color: '#737373', fontSize: 14, marginTop: 12 },
+  loading: { flex: 1, backgroundColor: '#111', alignItems: 'center', justifyContent: 'center' },
+  loadingText: { color: '#777', fontSize: 14, marginTop: 12 },
+  splash: { flex: 1, backgroundColor: '#111', alignItems: 'center', justifyContent: 'center' },
+  splashLogo: { width: 120, height: 120, borderRadius: 20 },
+  splashTitle: { fontSize: 36, fontWeight: '700', color: '#FFF', marginTop: 20, letterSpacing: -0.5 },
+  splashTagline: { fontSize: 14, color: '#999', marginTop: 4, letterSpacing: 1 },
+  splashSpinner: { marginTop: 32 },
 });

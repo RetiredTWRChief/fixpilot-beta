@@ -64,7 +64,7 @@ export default function GarageScreen() {
   const renderVehicle = ({ item }: { item: any }) => (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
-        <MaterialCommunityIcons name="car" size={22} color="#E5E5E5" />
+        <MaterialCommunityIcons name="car" size={22} color="#E62020" />
         <View style={styles.cardInfo}>
           {item.nickname ? <Text style={styles.nickname}>{item.nickname}</Text> : null}
           <Text style={styles.vehicleText}>{item.year} {item.make} {item.model}</Text>
@@ -84,7 +84,7 @@ export default function GarageScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
-        <MaterialCommunityIcons name="car-multiple" size={22} color="#E5E5E5" />
+        <MaterialCommunityIcons name="car-multiple" size={22} color="#E62020" />
         <Text style={styles.headerTitle}>{t('myGarage')}</Text>
         <TouchableOpacity testID="add-vehicle-button" style={styles.addBtn} onPress={() => setShowForm(!showForm)}>
           <MaterialCommunityIcons name={showForm ? "close" : "plus"} size={18} color="#A3A3A3" />
@@ -111,7 +111,7 @@ export default function GarageScreen() {
 
       {vehicles.length === 0 && !showForm ? (
         <View style={styles.center}>
-          <MaterialCommunityIcons name="car-off" size={48} color="#333333" />
+          <MaterialCommunityIcons name="car-off" size={48} color="#2A2A2A" />
           <Text style={styles.emptyTitle}>{t('noVehiclesSaved')}</Text>
           <Text style={styles.emptyText}>{t('addVehiclesPrompt')}</Text>
         </View>
@@ -124,26 +124,26 @@ export default function GarageScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#0A0A0A' },
+  safe: { flex: 1, backgroundColor: '#111' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#333333' },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#2A2A2A' },
   headerTitle: { fontSize: 18, fontWeight: '500', color: '#FFFFFF', flex: 1 },
-  addBtn: { padding: 8, borderWidth: 1, borderColor: '#333333', borderRadius: 4 },
-  formCard: { backgroundColor: '#141414', borderBottomWidth: 1, borderBottomColor: '#333333', padding: 16 },
-  formLabel: { fontSize: 10, fontWeight: '700', color: '#737373', letterSpacing: 2, marginBottom: 10 },
+  addBtn: { padding: 8, borderWidth: 1, borderColor: '#2A2A2A', borderRadius: 8 },
+  formCard: { backgroundColor: '#1A1A1A', borderBottomWidth: 1, borderBottomColor: '#2A2A2A', padding: 16 },
+  formLabel: { fontSize: 10, fontWeight: '700', color: '#777', letterSpacing: 2, marginBottom: 10 },
   formRow: { flexDirection: 'row', gap: 10, marginBottom: 10 },
-  input: { backgroundColor: '#0A0A0A', borderWidth: 1, borderColor: '#333333', borderRadius: 4, color: '#FFFFFF', fontSize: 14, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 10 },
+  input: { backgroundColor: '#111', borderWidth: 1, borderColor: '#2A2A2A', borderRadius: 8, color: '#FFFFFF', fontSize: 14, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 10 },
   inputSmall: { flex: 1, marginBottom: 0 },
-  saveBtn: { backgroundColor: '#FFFFFF', borderRadius: 4, paddingVertical: 12, alignItems: 'center', marginTop: 4 },
+  saveBtn: { backgroundColor: '#E62020', borderRadius: 8, paddingVertical: 12, alignItems: 'center', marginTop: 4 },
   saveBtnDisabled: { opacity: 0.5 },
-  saveBtnText: { fontSize: 14, fontWeight: '600', color: '#000' },
+  saveBtnText: { fontSize: 14, fontWeight: '600', color: '#FFF' },
   list: { padding: 16 },
-  card: { backgroundColor: '#141414', borderWidth: 1, borderColor: '#333333', borderRadius: 4, padding: 16, marginBottom: 10 },
+  card: { backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A', borderRadius: 8, padding: 16, marginBottom: 10 },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   cardInfo: { flex: 1 },
-  nickname: { fontSize: 15, fontWeight: '600', color: '#E5E5E5', marginBottom: 2 },
-  vehicleText: { fontSize: 14, color: '#A3A3A3' },
-  engineText: { fontSize: 12, color: '#737373', marginTop: 2 },
-  emptyTitle: { fontSize: 18, fontWeight: '500', color: '#A3A3A3', marginTop: 16 },
-  emptyText: { fontSize: 14, color: '#737373', marginTop: 6, textAlign: 'center', paddingHorizontal: 40 },
+  nickname: { fontSize: 15, fontWeight: '600', color: '#FFF', marginBottom: 2 },
+  vehicleText: { fontSize: 14, color: '#AAA' },
+  engineText: { fontSize: 12, color: '#777', marginTop: 2 },
+  emptyTitle: { fontSize: 18, fontWeight: '500', color: '#AAA', marginTop: 16 },
+  emptyText: { fontSize: 14, color: '#777', marginTop: 6, textAlign: 'center', paddingHorizontal: 40 },
 });

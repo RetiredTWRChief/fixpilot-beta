@@ -149,7 +149,7 @@ export default function ResultsScreen() {
           <Text style={styles.cardLabel}>{t('inspectionTools')}</Text>
           {match.inspection_tools.map((tool: any, i: number) => (
             <TouchableOpacity key={i} testID={`inspection-tool-${i}`} style={styles.toolItem} onPress={() => openUrl(tool.url)}>
-              <MaterialCommunityIcons name="open-in-new" size={14} color="#3B82F6" />
+              <MaterialCommunityIcons name="open-in-new" size={14} color="#E62020" />
               <View style={styles.toolInfo}>
                 <Text style={styles.toolName}>{tool.title}</Text>
                 {tool.description && <Text style={styles.toolDesc}>{tool.description}</Text>}
@@ -189,7 +189,7 @@ export default function ResultsScreen() {
                 <Text style={styles.toolName}>{tool.title}</Text>
                 {tool.description !== 'Recommended tool' && <Text style={styles.toolDesc}>{tool.description}</Text>}
               </View>
-              <MaterialCommunityIcons name="cart-outline" size={16} color="#3B82F6" />
+              <MaterialCommunityIcons name="cart-outline" size={16} color="#E62020" />
             </TouchableOpacity>
           ))}
         </View>
@@ -273,7 +273,7 @@ export default function ResultsScreen() {
       {/* Top Bar */}
       <View style={styles.topBar}>
         <TouchableOpacity testID="results-back-button" onPress={() => router.back()} style={styles.topBackBtn}>
-          <MaterialCommunityIcons name="arrow-left" size={22} color="#E5E5E5" />
+          <MaterialCommunityIcons name="arrow-left" size={22} color="#E62020" />
         </TouchableOpacity>
         <Text style={styles.topTitle} numberOfLines={1}>{t('diagnosisReport')}</Text>
         <View style={styles.topBackBtn} />
@@ -379,74 +379,74 @@ export default function ResultsScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#0A0A0A' },
+  safe: { flex: 1, backgroundColor: '#111' },
   flex: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  errorText: { fontSize: 16, color: '#A3A3A3' },
-  backBtn: { marginTop: 16, paddingHorizontal: 20, paddingVertical: 10, backgroundColor: '#141414', borderWidth: 1, borderColor: '#333333', borderRadius: 4 },
+  errorText: { fontSize: 16, color: '#AAA' },
+  backBtn: { marginTop: 16, paddingHorizontal: 20, paddingVertical: 10, backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A', borderRadius: 8 },
   backBtnText: { fontSize: 14, color: '#FFFFFF' },
-  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#333333' },
+  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#2A2A2A' },
   topBackBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   topTitle: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
   diagHeader: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 },
   diagTitle: { fontSize: 22, fontWeight: '300', color: '#FFFFFF', letterSpacing: -0.5 },
-  diagVehicle: { fontSize: 13, color: '#737373', fontWeight: '600', letterSpacing: 0.5, marginTop: 4, textTransform: 'uppercase' },
+  diagVehicle: { fontSize: 13, color: '#777', fontWeight: '600', letterSpacing: 0.5, marginTop: 4, textTransform: 'uppercase' },
   diffRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
-  diffDot: { width: 8, height: 8, borderRadius: 4 },
+  diffDot: { width: 8, height: 8, borderRadius: 8 },
   diffLabel: { fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
-  summaryBox: { marginHorizontal: 20, paddingVertical: 12, borderTopWidth: 1, borderTopColor: '#1F1F1F' },
-  summaryText: { fontSize: 14, color: '#A3A3A3', lineHeight: 21 },
-  tabBar: { flexDirection: 'row', paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: '#333333' },
+  summaryBox: { marginHorizontal: 20, paddingVertical: 12, borderTopWidth: 1, borderTopColor: '#222' },
+  summaryText: { fontSize: 14, color: '#AAA', lineHeight: 21 },
+  tabBar: { flexDirection: 'row', paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: '#2A2A2A' },
   tab: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 12 },
-  tabActive: { borderBottomWidth: 2, borderBottomColor: '#FFFFFF' },
-  tabText: { fontSize: 12, fontWeight: '600', color: '#737373', textTransform: 'uppercase', letterSpacing: 0.5 },
+  tabActive: { borderBottomWidth: 2, borderBottomColor: '#E62020' },
+  tabText: { fontSize: 12, fontWeight: '600', color: '#777', textTransform: 'uppercase', letterSpacing: 0.5 },
   tabTextActive: { color: '#FFFFFF' },
   tabContent: { padding: 16 },
-  card: { backgroundColor: '#141414', borderWidth: 1, borderColor: '#333333', borderRadius: 4, padding: 16, marginBottom: 12 },
-  cardLabel: { fontSize: 10, fontWeight: '700', color: '#737373', letterSpacing: 2, marginBottom: 10, textTransform: 'uppercase' },
-  cardText: { fontSize: 14, color: '#E5E5E5', lineHeight: 21 },
+  card: { backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A', borderRadius: 8, padding: 16, marginBottom: 12 },
+  cardLabel: { fontSize: 10, fontWeight: '700', color: '#777', letterSpacing: 2, marginBottom: 10, textTransform: 'uppercase' },
+  cardText: { fontSize: 14, color: '#FFF', lineHeight: 21 },
   listSection: { marginTop: 12 },
-  listTitle: { fontSize: 12, fontWeight: '600', color: '#A3A3A3', marginBottom: 6 },
+  listTitle: { fontSize: 12, fontWeight: '600', color: '#AAA', marginBottom: 6 },
   listItem: { flexDirection: 'row', gap: 8, marginBottom: 4 },
-  bullet: { fontSize: 14, color: '#737373' },
-  listText: { fontSize: 14, color: '#E5E5E5', lineHeight: 20, flex: 1 },
-  warningBox: { flexDirection: 'row', gap: 8, marginTop: 12, padding: 10, backgroundColor: '#1F1F1F', borderWidth: 1, borderColor: '#4D4D4D', borderRadius: 4 },
+  bullet: { fontSize: 14, color: '#777' },
+  listText: { fontSize: 14, color: '#FFF', lineHeight: 20, flex: 1 },
+  warningBox: { flexDirection: 'row', gap: 8, marginTop: 12, padding: 10, backgroundColor: '#1F1F1F', borderWidth: 1, borderColor: '#333', borderRadius: 8 },
   warningText: { fontSize: 13, color: '#F59E0B', flex: 1, lineHeight: 19 },
   stepItem: { flexDirection: 'row', gap: 12, marginBottom: 12 },
-  stepNum: { width: 24, height: 24, borderRadius: 4, backgroundColor: '#292929', alignItems: 'center', justifyContent: 'center' },
-  stepNumText: { fontSize: 12, fontWeight: '700', color: '#A3A3A3' },
-  stepText: { fontSize: 14, color: '#E5E5E5', lineHeight: 20, flex: 1 },
-  toolItem: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#1F1F1F' },
+  stepNum: { width: 24, height: 24, borderRadius: 8, backgroundColor: '#222', alignItems: 'center', justifyContent: 'center' },
+  stepNumText: { fontSize: 12, fontWeight: '700', color: '#AAA' },
+  stepText: { fontSize: 14, color: '#FFF', lineHeight: 20, flex: 1 },
+  toolItem: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#222' },
   toolInfo: { flex: 1 },
-  toolName: { fontSize: 14, fontWeight: '500', color: '#E5E5E5' },
-  toolDesc: { fontSize: 12, color: '#737373', marginTop: 2 },
+  toolName: { fontSize: 14, fontWeight: '500', color: '#FFF' },
+  toolDesc: { fontSize: 12, color: '#777', marginTop: 2 },
   costRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
-  costCard: { flex: 1, padding: 14, borderRadius: 4, borderWidth: 1 },
-  costCardDiy: { backgroundColor: '#141414', borderColor: '#22C55E' },
-  costCardMech: { backgroundColor: '#141414', borderColor: '#F59E0B' },
-  costLabel: { fontSize: 10, fontWeight: '700', color: '#737373', letterSpacing: 2, marginBottom: 6 },
+  costCard: { flex: 1, padding: 14, borderRadius: 8, borderWidth: 1 },
+  costCardDiy: { backgroundColor: '#1A1A1A', borderColor: '#22C55E' },
+  costCardMech: { backgroundColor: '#1A1A1A', borderColor: '#F59E0B' },
+  costLabel: { fontSize: 10, fontWeight: '700', color: '#777', letterSpacing: 2, marginBottom: 6 },
   costAmount: { fontSize: 18, fontWeight: '300', color: '#FFFFFF' },
-  partItem: { marginBottom: 14, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: '#1F1F1F' },
+  partItem: { marginBottom: 14, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: '#222' },
   partHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
-  partName: { fontSize: 14, fontWeight: '500', color: '#E5E5E5' },
-  partDesc: { fontSize: 12, color: '#737373', marginBottom: 8 },
+  partName: { fontSize: 14, fontWeight: '500', color: '#FFF' },
+  partDesc: { fontSize: 12, color: '#777', marginBottom: 8 },
   vendorRow: { marginTop: 4 },
-  vendorBtn: { backgroundColor: '#292929', borderWidth: 1, borderColor: '#4D4D4D', borderRadius: 4, paddingHorizontal: 12, paddingVertical: 6, marginRight: 8 },
-  vendorText: { fontSize: 11, fontWeight: '600', color: '#E5E5E5' },
-  videoItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#1F1F1F' },
+  vendorBtn: { backgroundColor: '#222', borderWidth: 1, borderColor: '#333', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6, marginRight: 8 },
+  vendorText: { fontSize: 11, fontWeight: '600', color: '#FFF' },
+  videoItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#222' },
   videoInfo: { flex: 1 },
-  videoTitle: { fontSize: 14, fontWeight: '500', color: '#E5E5E5' },
-  videoDesc: { fontSize: 12, color: '#737373', marginTop: 2 },
+  videoTitle: { fontSize: 14, fontWeight: '500', color: '#FFF' },
+  videoDesc: { fontSize: 12, color: '#777', marginTop: 2 },
   bottomSpacer: { height: 40 },
-  findShopsBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#FFFFFF', borderRadius: 4, paddingVertical: 12, marginTop: 12 },
-  findShopsBtnText: { fontSize: 14, fontWeight: '600', color: '#000' },
-  shopItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#1F1F1F' },
-  shopLeft: { width: 36, height: 36, borderRadius: 4, backgroundColor: '#292929', alignItems: 'center', justifyContent: 'center' },
+  findShopsBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#E62020', borderRadius: 8, paddingVertical: 12, marginTop: 12 },
+  findShopsBtnText: { fontSize: 14, fontWeight: '600', color: '#FFF' },
+  shopItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#222' },
+  shopLeft: { width: 36, height: 36, borderRadius: 8, backgroundColor: '#222', alignItems: 'center', justifyContent: 'center' },
   shopInfo: { flex: 1 },
-  shopName: { fontSize: 14, fontWeight: '500', color: '#E5E5E5' },
-  shopAddress: { fontSize: 12, color: '#737373', marginTop: 2 },
+  shopName: { fontSize: 14, fontWeight: '500', color: '#FFF' },
+  shopAddress: { fontSize: 12, color: '#777', marginTop: 2 },
   shopMeta: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
   shopRating: { fontSize: 12, fontWeight: '600', color: '#F59E0B' },
-  shopReviews: { fontSize: 11, color: '#737373' },
+  shopReviews: { fontSize: 11, color: '#777' },
   shopOpen: { fontSize: 11, fontWeight: '600', marginLeft: 8 },
 });
