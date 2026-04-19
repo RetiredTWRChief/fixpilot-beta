@@ -24,7 +24,6 @@ export default function HomeScreen() {
   const [engine, setEngine] = useState('');
   const [issue, setIssue] = useState('');
   const [loading, setLoading] = useState(false);
-  const [recentDiagnoses, setRecentDiagnoses] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [subStatus, setSubStatus] = useState<any>(null);
   const [paywallError, setPaywallError] = useState('');
@@ -32,16 +31,7 @@ export default function HomeScreen() {
   const [showLangPicker, setShowLangPicker] = useState(false);
   const { t, i18n } = useTranslation();
 
-  const fetchRecent = useCallback(async () => {
-    try {
-      const headers: any = {};
-      if (token) Object.assign(headers, authHeaders());
-      const res = await fetch(`${API}/api/history`, { headers });
-      if (res.ok) setRecentDiagnoses((await res.json()).slice(0, 3));
-    } catch (e) {}
-  }, [token, authHeaders]);
-
-  useEffect(() => { fetchRecent(); fetchSubStatus(); loadLocalUsage(); }, []);
+  useEffect(() => { fetchSubStatus(); loadLocalUsage(); }, []);
 
   const loadLocalUsage = async () => {
     const val = await AsyncStorage.getItem('fixpilot_diag_count');
@@ -61,10 +51,9 @@ export default function HomeScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchRecent();
     await fetchSubStatus();
     setRefreshing(false);
-  }, [fetchRecent]);
+  }, []);
 
   const handleDiagnose = async () => {
     if (!issue.trim()) return;
@@ -208,30 +197,6 @@ export default function HomeScreen() {
               </View>}
           </TouchableOpacity>
 
-          {/* Recent */}
-          {recentDiagnoses.length > 0 && (
-            <View style={s.section}>
-              <View style={s.sectionHeader}>
-                <MaterialCommunityIcons name="clock-outline" size={16} color="#E62020" />
-                <Text style={s.sectionLabel}>{t('recentDiagnoses')}</Text>
-              </View>
-              {recentDiagnoses.map((d: any) => (
-                <TouchableOpacity testID={`recent-${d.id}`} key={d.id} style={s.recentCard}
-                  onPress={() => router.push({ pathname: '/results', params: { id: d.id } })}>
-                  <View style={s.recentLeft}>
-                    <View style={s.recentIcon}>
-                      <MaterialCommunityIcons name="car-wrench" size={16} color="#E62020" />
-                    </View>
-                    <View style={s.recentInfo}>
-                      <Text style={s.recentVehicle} numberOfLines={1}>{d.vehicle_summary || 'Vehicle'}</Text>
-                      <Text style={s.recentIssue} numberOfLines={1}>{d.issue}</Text>
-                    </View>
-                  </View>
-                  <MaterialCommunityIcons name="chevron-right" size={18} color="#555" />
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
           <View style={{ height: 30 }} />
         </ScrollView>
       </KeyboardAvoidingView>

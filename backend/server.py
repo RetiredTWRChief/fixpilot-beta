@@ -169,9 +169,8 @@ async def ai_diagnose(vehicle: VehicleInfo, issue: str, repair_match=None, langu
     LANG_NAMES = {"en":"English","es":"Spanish","fr":"French","de":"German","pt":"Portuguese","zh":"Chinese","ja":"Japanese","ko":"Korean","it":"Italian","ar":"Arabic"}
     lang_name = LANG_NAMES.get(language, "English")
     vehicle_str = _vehicle_summary(vehicle)
-    system_msg = f"""You are FixPilot, an expert AI vehicle mechanic assistant. Respond in {lang_name}. Given a vehicle and issue, respond with JSON:
-{"title":"Brief title","summary":"2-3 sentence overview","likely_causes":["cause1"],"inspection_steps":["step1"],"recommended_approach":"What to do","difficulty":"Easy/Moderate/Advanced","safety_notes":"Warnings","estimated_diy_cost":{"min":0,"max":0},"estimated_mechanic_cost":{"min":0,"max":0}}
-Respond with valid JSON only."""
+    json_template = '{"title":"Brief title","summary":"2-3 sentence overview","likely_causes":["cause1"],"inspection_steps":["step1"],"recommended_approach":"What to do","difficulty":"Easy/Moderate/Advanced","safety_notes":"Warnings","estimated_diy_cost":{"min":0,"max":0},"estimated_mechanic_cost":{"min":0,"max":0}}'
+    system_msg = f"You are FixPilot, an expert AI vehicle mechanic assistant. Respond in {lang_name}. Given a vehicle and issue, respond with JSON:\n{json_template}\nRespond with valid JSON only."
     context = f"Vehicle: {vehicle_str}\nIssue: {issue}"
     if repair_match:
         e = repair_match["entry"]
