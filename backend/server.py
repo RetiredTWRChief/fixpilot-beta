@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 
 from repair_library import REPAIR_LIBRARY, find_repair_match
+from vehicle_data import YEARS, get_makes, get_models, get_engines
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
 
@@ -446,6 +447,23 @@ async def delete_diagnosis(diag_id: str):
 @api_router.get("/repair-library")
 async def get_repair_library():
     return REPAIR_LIBRARY
+
+# --- Vehicle Data (Dropdowns) ---
+@api_router.get("/vehicle-years")
+async def vehicle_years():
+    return YEARS
+
+@api_router.get("/vehicle-makes")
+async def vehicle_makes():
+    return get_makes()
+
+@api_router.get("/vehicle-models")
+async def vehicle_models(make: str):
+    return get_models(make)
+
+@api_router.get("/vehicle-engines")
+async def vehicle_engines(make: str, model: str):
+    return get_engines(make, model)
 
 # --- Vehicle / Garage Routes ---
 @api_router.post("/vehicles")

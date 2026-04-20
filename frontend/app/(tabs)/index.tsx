@@ -11,6 +11,7 @@ import { LOGO_BASE64 } from '../../lib/logo-base64';
 import { LANGUAGES, changeLanguage } from '../../lib/i18n';
 import { useTranslation } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import DropdownPicker from '../../lib/DropdownPicker';
 
 const API = process.env.EXPO_PUBLIC_BACKEND_URL;
 const FREE_LIMIT = 1;
@@ -18,6 +19,7 @@ const FREE_LIMIT = 1;
 export default function HomeScreen() {
   const router = useRouter();
   const { user, logout, authHeaders, token } = useAuth();
+  const { t, i18n } = useTranslation();
   const [year, setYear] = useState('');
   const [make, setMake] = useState('');
   const [model, setModel] = useState('');
@@ -29,9 +31,50 @@ export default function HomeScreen() {
   const [paywallError, setPaywallError] = useState('');
   const [localUsed, setLocalUsed] = useState(0);
   const [showLangPicker, setShowLangPicker] = useState(false);
-  const { t, i18n } = useTranslation();
 
-  useEffect(() => { fetchSubStatus(); loadLocalUsage(); }, []);
+  // Vehicle dropdown data
+  const [years, setYears] = useState<string[]>([]);
+  const [makes, setMakes] = useState<string[]>([]);
+  const [models, setModels] = useState<string[]>([]);
+  const [engines, setEngines] = useState<string[]>([]);
+  const [makesLoading, setMakesLoading] = useState(false);
+  const [modelsLoading, setModelsLoading] = useState(false);
+  const [enginesLoading, setEnginesLoading] = useState(false);
+
+  useEffect(() => {
+    fetchSubStatus(); loadLocalUsage(); fetchYearsAndMakes();
+  }, []);
+
+  const fetchYearsAndMakes = async () => {
+    try {
+      const [yRes, mRes] = await Promise.all([
+        fetch(`${API}/api/vehicle-years`),
+        fetch(`${API}/api/vehicle-makes`),
+      ]);
+      if (yRes.ok) setYears(await yRes.json());
+      if (mRes.ok) setMakes(await mRes.json());
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    if (make) {
+      setModel(''); setEngine(''); setModels([]); setEngines([]);
+      setModelsLoading(true);
+      fetch(`${API}/api/vehicle-models?make=${encodeURIComponent(make)}`)
+        .then(r => r.json()).then(d => { setModels(d); setModelsLoading(false); })
+        .catch(() => setModelsLoading(false));
+    }
+  }, [make]);
+
+  useEffect(() => {
+    if (make && model) {
+      setEngine(''); setEngines([]);
+      setEnginesLoading(true);
+      fetch(`${API}/api/vehicle-engines?make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}`)
+        .then(r => r.json()).then(d => { setEngines(d); setEnginesLoading(false); })
+        .catch(() => setEnginesLoading(false));
+    }
+  }, [make, model]);
 
   const loadLocalUsage = async () => {
     const val = await AsyncStorage.getItem('fixpilot_diag_count');
@@ -61,8 +104,7 @@ export default function HomeScreen() {
       setPaywallError('Free limit reached. Upgrade to FixPilot Pro for unlimited diagnoses.');
       return;
     }
-    setLoading(true);
-    setPaywallError('');
+    setLoading(true); setPaywallError('');
     try {
       const headers: any = { 'Content-Type': 'application/json' };
       if (token) Object.assign(headers, authHeaders());
@@ -71,22 +113,14 @@ export default function HomeScreen() {
         body: JSON.stringify({ vehicle: { year, make, model, engine }, issue: issue.trim(), language: i18n.language }),
       });
       const data = await res.json();
-      if (res.status === 403) {
-        setPaywallError(data.detail || 'Upgrade required');
-        setLoading(false);
-        return;
-      }
+      if (res.status === 403) { setPaywallError(data.detail || 'Upgrade required'); setLoading(false); return; }
       if (data.id) {
-        const newCount = localUsed + 1;
-        setLocalUsed(newCount);
-        await AsyncStorage.setItem('fixpilot_diag_count', newCount.toString());
+        const nc = localUsed + 1; setLocalUsed(nc);
+        await AsyncStorage.setItem('fixpilot_diag_count', nc.toString());
         router.push({ pathname: '/results', params: { id: data.id } });
       }
-    } catch (e) {
-      console.error('Diagnosis error:', e);
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
   };
 
   return (
@@ -95,7 +129,7 @@ export default function HomeScreen() {
         <ScrollView style={s.flex} contentContainerStyle={s.scroll}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#E62020" />}>
 
-          {/* Hero Header with Logo */}
+          {/* Hero */}
           <View style={s.hero}>
             <View style={s.heroTop}>
               <Image source={{ uri: LOGO_BASE64 }} style={s.logo} resizeMode="contain" />
@@ -115,7 +149,6 @@ export default function HomeScreen() {
               ) : null}
             </View>
 
-            {/* Language Picker Dropdown */}
             {showLangPicker && (
               <View style={s.langDropdown}>
                 <Text style={s.langDropdownLabel}>{t('selectLanguage')}</Text>
@@ -131,7 +164,6 @@ export default function HomeScreen() {
               </View>
             )}
 
-            {/* Status Bar */}
             <View style={s.statusBar}>
               {isPro ? (
                 <View style={s.proBadge}><Text style={s.proBadgeText}>PRO</Text></View>
@@ -146,35 +178,37 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          {/* Vehicle Input */}
+          {/* Vehicle Dropdowns */}
           <View style={s.section}>
             <View style={s.sectionHeader}>
               <MaterialCommunityIcons name="car" size={16} color="#E62020" />
               <Text style={s.sectionLabel}>{t('vehicleDetails')}</Text>
             </View>
             <View style={s.row}>
-              <TextInput testID="input-year" style={s.input} placeholder={t('year')} placeholderTextColor="#555" value={year} onChangeText={setYear} keyboardType="number-pad" maxLength={4} />
-              <TextInput testID="input-make" style={s.input} placeholder={t('make')} placeholderTextColor="#555" value={make} onChangeText={setMake} />
+              <DropdownPicker testID="input-year" label={t('year')} value={year} options={years}
+                onSelect={setYear} placeholder={t('year')} />
+              <DropdownPicker testID="input-make" label={t('make')} value={make} options={makes}
+                onSelect={setMake} placeholder={t('make')} loading={makesLoading} />
             </View>
             <View style={s.row}>
-              <TextInput testID="input-model" style={s.input} placeholder={t('model')} placeholderTextColor="#555" value={model} onChangeText={setModel} />
-              <TextInput testID="input-engine" style={s.input} placeholder={t('engineOpt')} placeholderTextColor="#555" value={engine} onChangeText={setEngine} />
+              <DropdownPicker testID="input-model" label={t('model')} value={model} options={models}
+                onSelect={setModel} placeholder={t('model')} disabled={!make} loading={modelsLoading} />
+              <DropdownPicker testID="input-engine" label={t('engineOpt')} value={engine} options={engines}
+                onSelect={setEngine} placeholder={t('engineOpt')} disabled={!model} loading={enginesLoading} />
             </View>
           </View>
 
-          {/* Issue Input */}
+          {/* Issue */}
           <View style={s.section}>
             <View style={s.sectionHeader}>
               <MaterialCommunityIcons name="alert-circle-outline" size={16} color="#E62020" />
               <Text style={s.sectionLabel}>{t('whatsProblem')}</Text>
             </View>
             <TextInput testID="input-issue" style={[s.input, s.textArea]}
-              placeholder={t('issuePlaceholder')}
-              placeholderTextColor="#555" value={issue} onChangeText={setIssue}
-              multiline numberOfLines={4} textAlignVertical="top" />
+              placeholder={t('issuePlaceholder')} placeholderTextColor="#555"
+              value={issue} onChangeText={setIssue} multiline numberOfLines={4} textAlignVertical="top" />
           </View>
 
-          {/* Paywall */}
           {paywallError ? (
             <TouchableOpacity testID="paywall-upgrade" style={s.paywallCard} onPress={() => { setPaywallError(''); router.push('/subscribe'); }}>
               <MaterialCommunityIcons name="lock" size={22} color="#E62020" />
@@ -186,7 +220,6 @@ export default function HomeScreen() {
             </TouchableOpacity>
           ) : null}
 
-          {/* CTA Button */}
           <TouchableOpacity testID="diagnose-button"
             style={[s.ctaBtn, (!issue.trim() || loading) && s.ctaBtnDisabled]}
             onPress={handleDiagnose} disabled={!issue.trim() || loading} activeOpacity={0.8}>
@@ -205,18 +238,16 @@ export default function HomeScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#111111' },
+  safe: { flex: 1, backgroundColor: '#111' },
   flex: { flex: 1 },
   scroll: { padding: 20 },
-  // Hero
   hero: { marginBottom: 24 },
   heroTop: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   logo: { width: 72, height: 72, borderRadius: 12 },
   heroTextCol: { flex: 1 },
-  heroTitle: { fontSize: 30, fontWeight: '700', color: '#FFFFFF', letterSpacing: -0.5 },
-  heroTagline: { fontSize: 13, color: '#CCCCCC', fontWeight: '500', marginTop: 1 },
+  heroTitle: { fontSize: 30, fontWeight: '700', color: '#FFF', letterSpacing: -0.5 },
+  heroTagline: { fontSize: 13, color: '#CCC', fontWeight: '500', marginTop: 1 },
   heroSub: { fontSize: 11, color: '#777', marginTop: 2 },
-  redDot: { color: '#E62020', fontWeight: '700' },
   logoutBtn: { padding: 8, borderWidth: 1, borderColor: '#333', borderRadius: 6 },
   langBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: '#E62020', borderRadius: 6 },
   langBtnText: { fontSize: 11, fontWeight: '700', color: '#E62020' },
@@ -227,7 +258,6 @@ const s = StyleSheet.create({
   langItemActive: { borderColor: '#E62020', backgroundColor: '#2A1010' },
   langItemText: { fontSize: 13, color: '#999' },
   langItemTextActive: { color: '#E62020', fontWeight: '700' },
-  // Status Bar
   statusBar: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14, flexWrap: 'wrap' },
   proBadge: { backgroundColor: '#E62020', borderRadius: 4, paddingHorizontal: 10, paddingVertical: 3 },
   proBadgeText: { fontSize: 10, fontWeight: '800', color: '#FFF', letterSpacing: 1.5 },
@@ -235,31 +265,18 @@ const s = StyleSheet.create({
   upgradeBtnText: { fontSize: 11, fontWeight: '700', color: '#E62020' },
   freeCount: { fontSize: 12, color: '#777' },
   userGreet: { fontSize: 12, color: '#999', marginLeft: 'auto' },
-  // Sections
   section: { marginBottom: 18 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
   sectionLabel: { fontSize: 11, fontWeight: '700', color: '#999', letterSpacing: 1.5 },
   row: { flexDirection: 'row', gap: 10, marginBottom: 10 },
-  input: {
-    flex: 1, backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#333', borderRadius: 8,
-    color: '#FFF', fontSize: 15, paddingHorizontal: 14, paddingVertical: 12,
-  },
+  input: { backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#333', borderRadius: 8, color: '#FFF', fontSize: 15, paddingHorizontal: 14, paddingVertical: 12 },
   textArea: { minHeight: 100, paddingTop: 14 },
-  // Paywall
   paywallCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#1A1A1A', borderWidth: 1.5, borderColor: '#E62020', borderRadius: 8, padding: 14, marginBottom: 14 },
   paywallInfo: { flex: 1 },
   paywallTitle: { fontSize: 14, fontWeight: '700', color: '#E62020' },
   paywallText: { fontSize: 12, color: '#AAA', marginTop: 2 },
-  // CTA
   ctaBtn: { backgroundColor: '#E62020', borderRadius: 10, paddingVertical: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 24 },
   ctaBtnDisabled: { opacity: 0.35 },
   ctaInner: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   ctaText: { fontSize: 17, fontWeight: '700', color: '#FFF' },
-  // Recent
-  recentCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A', borderRadius: 8, padding: 14, marginBottom: 8 },
-  recentLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  recentIcon: { width: 36, height: 36, borderRadius: 8, backgroundColor: '#222', alignItems: 'center', justifyContent: 'center' },
-  recentInfo: { flex: 1 },
-  recentVehicle: { fontSize: 13, color: '#CCC', fontWeight: '600' },
-  recentIssue: { fontSize: 12, color: '#777', marginTop: 2 },
 });
