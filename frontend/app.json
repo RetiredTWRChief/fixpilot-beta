@@ -10,6 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.fixpilot.app",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Find nearby auto repair shops"
       }
@@ -20,6 +21,7 @@
         "backgroundColor": "#000000"
       },
       "edgeToEdgeEnabled": true,
+      "package": "com.fixpilot.app",
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION"
