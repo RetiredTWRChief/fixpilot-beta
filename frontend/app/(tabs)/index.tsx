@@ -184,13 +184,13 @@ export default function HomeScreen() {
               <MaterialCommunityIcons name="car" size={16} color="#E62020" />
               <Text style={s.sectionLabel}>{t('vehicleDetails')}</Text>
             </View>
-            <View style={s.row}>
+            <View style={[s.row, { zIndex: 20 }]}>
               <DropdownPicker testID="input-year" label={t('year')} value={year} options={years}
                 onSelect={setYear} placeholder={t('year')} />
               <DropdownPicker testID="input-make" label={t('make')} value={make} options={makes}
                 onSelect={setMake} placeholder={t('make')} loading={makesLoading} />
             </View>
-            <View style={s.row}>
+            <View style={[s.row, { zIndex: 10 }]}>
               <DropdownPicker testID="input-model" label={t('model')} value={model} options={models}
                 onSelect={setModel} placeholder={t('model')} disabled={!make} loading={modelsLoading} />
               <DropdownPicker testID="input-engine" label={t('engineOpt')} value={engine} options={engines}
