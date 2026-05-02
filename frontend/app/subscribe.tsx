@@ -173,6 +173,9 @@ export default function SubscribeScreen() {
         </View>
 
         <Text style={styles.disclaimer}>Powered by Stripe. Cancel anytime. Domain: tryfixpilot.com</Text>
+        <TouchableOpacity onPress={() => router.push('/privacy')} style={{ marginTop: 8 }}>
+          <Text style={styles.privacyLink}>Privacy Policy</Text>
+        </TouchableOpacity>
         <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
@@ -212,4 +215,5 @@ const styles = StyleSheet.create({
   freeCard: { backgroundColor: '#141414', borderWidth: 1, borderColor: '#333333', borderRadius: 4, padding: 20, marginBottom: 16 },
   freeTitle: { fontSize: 18, fontWeight: '500', color: '#A3A3A3', marginBottom: 4 },
   disclaimer: { fontSize: 11, color: '#737373', textAlign: 'center', marginTop: 8 },
+  privacyLink: { fontSize: 12, color: '#A3A3A3', textAlign: 'center', textDecorationLine: 'underline' },
 });

@@ -80,6 +80,7 @@ function RootNavigator() {
       <Stack.Screen name="login" />
       <Stack.Screen name="register" />
       <Stack.Screen name="forgot-password" />
+      <Stack.Screen name="privacy" options={{ animation: 'slide_from_right' }} />
     </Stack>
   );
 }

@@ -65,6 +65,10 @@ export default function RegisterScreen() {
             <TouchableOpacity testID="go-to-login" style={styles.linkBtn} onPress={() => router.push('/login')}>
               <Text style={styles.linkText}>Already have an account? <Text style={styles.linkBold}>{t('signInLink')}</Text></Text>
             </TouchableOpacity>
+
+            <TouchableOpacity style={styles.privacyBtn} onPress={() => router.push('/privacy')}>
+              <Text style={styles.privacyText}>By creating an account, you agree to our <Text style={styles.privacyLinkText}>Privacy Policy</Text></Text>
+            </TouchableOpacity>
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -90,4 +94,7 @@ const styles = StyleSheet.create({
   linkBtn: { alignItems: 'center', marginTop: 20 },
   linkText: { fontSize: 14, color: '#737373' },
   linkBold: { color: '#E5E5E5', fontWeight: '600' },
+  privacyBtn: { alignItems: 'center', marginTop: 24, paddingHorizontal: 16 },
+  privacyText: { fontSize: 12, color: '#737373', textAlign: 'center' },
+  privacyLinkText: { color: '#E5E5E5', textDecorationLine: 'underline' },
 });
